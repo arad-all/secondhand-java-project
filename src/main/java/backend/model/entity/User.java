@@ -25,11 +25,12 @@ import java.util.List;
 @Entity
 @Table(name = "users", uniqueConstraints = {
         @UniqueConstraint(name = "uk_users_username", columnNames = "username"),
-        @UniqueConstraint(name = "uk_users_phone_number", columnNames = "phone_number")
+        @UniqueConstraint(name = "uk_users_phone_number", columnNames = "phone_number") ,
+        @UniqueConstraint(name = "uk_users_email", columnNames = "email")
 })
 public class User extends BaseEntity {
 
-    @Column(nullable = false, unique = true, length = 50)
+    @Column(nullable = false, length = 50)
     private String username;
 
     /** Stored as a hash (e.g. BCrypt) — never persist a raw password. */
@@ -39,10 +40,10 @@ public class User extends BaseEntity {
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
-    @Column(name = "phone_number", nullable = false, unique = true, length = 20)
+    @Column(name = "phone_number", nullable = false, length = 20)
     private String phoneNumber;
 
-    @Column(length = 100)
+    @Column(nullable = false, length = 100)
     private String email;
 
     @Enumerated(EnumType.STRING)
