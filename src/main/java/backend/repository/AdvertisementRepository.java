@@ -38,7 +38,7 @@ public interface AdvertisementRepository extends JpaRepository<Advertisement, Lo
     Page<Advertisement> findByStatus(AdvertisementStatus status, Pageable pageable);
 
     @EntityGraph(attributePaths = {"owner", "category", "city"})
-    List<Advertisement> findByOwnerId(Long ownerId);
+    Page<Advertisement> findByOwnerId(Long ownerId, Pageable pageable);
 
     @EntityGraph(attributePaths = {"owner", "category", "city"})
     Page<Advertisement> findByOwnerIdAndStatus(Long ownerId, AdvertisementStatus status, Pageable pageable);
