@@ -83,6 +83,24 @@ public class AdvertisementService {
     }
 
     /**
+     * Plain public listing of every {@code ACTIVE} advertisement — what
+     * {@code GET /api/advertisements} returns today. Backed directly by
+     * {@link AdvertisementRepository#findByStatus} rather than the
+     * filtered {@link #search}: once a caller needs keyword/category/
+     * city/price filtering, {@code search} is the method for that.
+     * <p>
+     * Returns a {@link Page}, like every other list-returning method
+     * here, even though the controller currently unwraps it into a flat
+     * list (the JavaFX client doesn't send or understand pagination yet)
+     * — so the moment that's wired up, this method needs no changes.
+     */
+    @Transactional(readOnly = true)
+    public Page<AdvertisementSummaryResponse> getActiveAdvertisements(Pageable pageable) {
+        return advertisementRepository.findByStatus(AdvertisementStatus.ACTIVE, pageable)
+                .map(AdvertisementMapper::toSummary);
+    }
+
+    /**
      * Fetches one advertisement's detail view. An {@code ACTIVE} ad is
      * visible to anyone; anything else (pending review, rejected, sold,
      * deleted) is visible only to its owner or an admin. Any other caller
