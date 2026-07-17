@@ -99,4 +99,9 @@ public class JwtService {
     public String extractRole(String token) {
         return parseClaims(token).get(CLAIM_ROLE, String.class);
     }
+
+    /** Convenience accessor: pulls the {@code username} claim out of a token. */
+    public String extractUsername(String token) {
+        return parseClaims(token).get(CLAIM_USERNAME, String.class);
+    }
 }
