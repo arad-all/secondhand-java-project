@@ -179,6 +179,61 @@ public class AdvertisementService {
     }
 
     /**
+     * All advertisements awaiting moderation (plan §"Moderation"). Backs
+     * the admin "review queue" view — enforcement of who may call this
+     * (ADMIN only) lives in {@code SecurityConfig}'s {@code /api/admin/**}
+     * rule, not here.
+     */
+    @Transactional(readOnly = true)
+    public Page<AdvertisementSummaryResponse> listPendingReview(Pageable pageable) {
+        return advertisementRepository.findByStatus(AdvertisementStatus.PENDING_REVIEW, pageable)
+                .map(AdvertisementMapper::toSummary);
+    }
+
+    /**
+     * Approves a pending advertisement, publishing it. Only a valid
+     * transition from {@code PENDING_REVIEW} — approving an already-
+     * ACTIVE, REJECTED, SOLD, or DELETED ad is rejected. Clears any
+     * previous {@code adminNote} (e.g. left by an earlier rejection that
+     * was reconsidered) since it no longer applies once approved.
+     */
+    @Transactional
+    public AdvertisementDetailResponse approve(Long adId) {
+        Advertisement ad = advertisementRepository.findById(adId)
+                .orElseThrow(() -> notFound(adId));
+
+        if (ad.getStatus() != AdvertisementStatus.PENDING_REVIEW) {
+            throw new InvalidStateTransitionException(
+                    "Cannot approve advertisement from status " + ad.getStatus() + ".");
+        }
+
+        ad.setStatus(AdvertisementStatus.ACTIVE);
+        ad.setAdminNote(null);
+        return AdvertisementMapper.toDetail(ad);
+    }
+
+    /**
+     * Rejects a pending advertisement, recording why via {@code adminNote}
+     * so the owner can see the reason. Only a valid transition from
+     * {@code PENDING_REVIEW}, same as {@link #approve}.
+     */
+    @Transactional
+    public AdvertisementDetailResponse reject(Long adId, String reason) {
+        Advertisement ad = advertisementRepository.findById(adId)
+                .orElseThrow(() -> notFound(adId));
+
+        if (ad.getStatus() != AdvertisementStatus.PENDING_REVIEW) {
+            throw new InvalidStateTransitionException(
+                    "Cannot reject advertisement from status " + ad.getStatus() + ".");
+        }
+
+        ad.setStatus(AdvertisementStatus.REJECTED);
+        ad.setAdminNote(reason);
+        return AdvertisementMapper.toDetail(ad);
+    }
+
+
+    /**
      * Marks the ad sold. Owner-only, and only a valid transition from
      * {@code ACTIVE} — trying to sell a PENDING_REVIEW/REJECTED/DELETED/
      * already-SOLD ad is rejected, not silently accepted.
