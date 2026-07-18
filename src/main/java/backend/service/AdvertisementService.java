@@ -76,9 +76,10 @@ public class AdvertisementService {
                                                        Long cityId,
                                                        BigDecimal minPrice,
                                                        BigDecimal maxPrice,
+                                                       AdvertisementStatus status,
                                                        Pageable pageable) {
         Page<Advertisement> results = advertisementRepository.search(
-                AdvertisementStatus.ACTIVE, categoryId, cityId, minPrice, maxPrice, keyword, pageable);
+                status, categoryId, cityId, minPrice, maxPrice, keyword, pageable);
         return results.map(AdvertisementMapper::toSummary);
     }
 

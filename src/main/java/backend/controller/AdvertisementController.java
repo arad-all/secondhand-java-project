@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -57,6 +58,32 @@ public class AdvertisementController {
     @GetMapping
     public List<AdvertisementSummaryResponse> getActiveAdvertisements(Pageable pageable) {
         return advertisementService.getActiveAdvertisements(pageable).getContent();
+    }
+
+    /**
+     * Public keyword/filter search — category, city, price range, and a
+     * free-text keyword against title/description — on top of the plain
+     * listing {@link #getActiveAdvertisements} provides. This route is
+     * public (falls under SecurityConfig's {@code permitAll} rule for
+     * {@code GET /api/advertisements/**}), so it deliberately hardcodes
+     * {@code AdvertisementStatus.ACTIVE} when calling the service:
+     * {@link AdvertisementService#search} now accepts {@code status} as a
+     * plain parameter rather than assuming {@code ACTIVE} itself (so it
+     * can be reused for non-public scopes, e.g. an admin keyword-searching
+     * the pending-review queue), which makes keeping *this* route
+     * public-safe this controller's responsibility, not the service's.
+     */
+    @GetMapping("/search")
+    public Page<AdvertisementSummaryResponse> search(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long cityId,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            Pageable pageable
+    ){
+        return advertisementService.search(keyword, categoryId, cityId, minPrice, maxPrice,
+                AdvertisementStatus.ACTIVE, pageable);
     }
 
     /**
