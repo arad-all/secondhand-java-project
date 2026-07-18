@@ -64,22 +64,31 @@ public class AdvertisementService {
     private final UserRepository userRepository;
 
     /**
-     * Public browse/search. Always forces {@code status = ACTIVE},
-     * regardless of any caller input — the repository's {@code search()}
-     * deliberately throws if status is null for exactly this reason, so
-     * this is the one and only place that decides the value. Never let a
-     * future refactor take status from the caller here.
+     * Keyword/filter browse-and-search. Unlike {@link #getActiveAdvertisements},
+     * this supports narrowing by category, city, price range, and a
+     * free-text keyword (matched against title/description) on top of the
+     * required {@code status}.
+     * <p>
+     * Only an {@code ADMIN} caller may search anything other than
+     * {@code ACTIVE} — anyone else's requested {@code status} is silently
+     * overridden back to {@code ACTIVE}, the same visibility rule
+     * {@link #getById} enforces for the single-ad view. {@code isAdmin} is
+     * resolved by the controller from the JWT and passed in as a plain
+     * boolean; this method is what actually decides what that identity is
+     * allowed to do with it.
      */
     @Transactional(readOnly = true)
     public Page<AdvertisementSummaryResponse> search(String keyword,
-                                                       Long categoryId,
-                                                       Long cityId,
-                                                       BigDecimal minPrice,
-                                                       BigDecimal maxPrice,
-                                                       AdvertisementStatus status,
-                                                       Pageable pageable) {
+                                                     Long categoryId,
+                                                     Long cityId,
+                                                     BigDecimal minPrice,
+                                                     BigDecimal maxPrice,
+                                                     AdvertisementStatus status,
+                                                     boolean isAdmin,
+                                                     Pageable pageable) {
+        AdvertisementStatus effectiveStatus = isAdmin ? status : AdvertisementStatus.ACTIVE;
         Page<Advertisement> results = advertisementRepository.search(
-                status, categoryId, cityId, minPrice, maxPrice, keyword, pageable);
+                effectiveStatus, categoryId, cityId, minPrice, maxPrice, keyword, pageable);
         return results.map(AdvertisementMapper::toSummary);
     }
 

@@ -63,15 +63,12 @@ public class AdvertisementController {
     /**
      * Public keyword/filter search — category, city, price range, and a
      * free-text keyword against title/description — on top of the plain
-     * listing {@link #getActiveAdvertisements} provides. This route is
-     * public (falls under SecurityConfig's {@code permitAll} rule for
-     * {@code GET /api/advertisements/**}), so it deliberately hardcodes
-     * {@code AdvertisementStatus.ACTIVE} when calling the service:
-     * {@link AdvertisementService#search} now accepts {@code status} as a
-     * plain parameter rather than assuming {@code ACTIVE} itself (so it
-     * can be reused for non-public scopes, e.g. an admin keyword-searching
-     * the pending-review queue), which makes keeping *this* route
-     * public-safe this controller's responsibility, not the service's.
+     * listing {@link #getActiveAdvertisements} provides.
+     * <p>
+     * {@code status} defaults to {@code ACTIVE}; whether a non-ACTIVE value
+     * is actually honored is decided by {@link AdvertisementService#search}
+     * based on {@code isAdmin}, resolved here from the JWT the same way
+     * {@link #getAdvertisementById} already does.
      */
     @GetMapping("/search")
     public Page<AdvertisementSummaryResponse> search(
@@ -80,10 +77,11 @@ public class AdvertisementController {
             @RequestParam(required = false) Long cityId,
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice,
-            Pageable pageable
-    ){
-        return advertisementService.search(keyword, categoryId, cityId, minPrice, maxPrice,
-                AdvertisementStatus.ACTIVE, pageable);
+            @RequestParam(required = false, defaultValue = "ACTIVE") AdvertisementStatus status,
+            @AuthenticationPrincipal AuthenticatedUser user,
+            Pageable pageable) {
+        boolean isAdmin = (user != null) && Role.ADMIN.name().equals(user.role());
+        return advertisementService.search(keyword, categoryId, cityId, minPrice, maxPrice, status, isAdmin, pageable);
     }
 
     /**
