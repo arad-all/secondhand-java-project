@@ -3,6 +3,7 @@ package backend.controller;
 import backend.controller.dto.AdvertisementDetailResponse;
 import backend.controller.dto.AdvertisementSummaryResponse;
 import backend.controller.dto.CreateAdvertisementRequest;
+import backend.controller.dto.UpdateAdvertisementRequest;
 import backend.model.enums.AdvertisementStatus;
 import backend.model.enums.Role;
 import backend.security.AuthenticatedUser;
@@ -115,6 +116,20 @@ public class AdvertisementController {
     }
 
     /**
+     * Edits an advertisement's own fields. Partial update — only fields
+     * present in the body are changed. Owner-or-admin check happens in
+     * the service; this just resolves {@code isAdmin} from the JWT.
+     */
+    @PatchMapping("/{id}")
+    public AdvertisementDetailResponse editAdvertisement(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateAdvertisementRequest request,
+            @AuthenticationPrincipal AuthenticatedUser user) {
+        boolean isAdmin = Role.ADMIN.name().equals(user.role());
+        return advertisementService.editAdvertisement(id, request, user.userId(), isAdmin);
+    }
+
+    /**
      * Creates a new advertisement, owned by the authenticated caller.
      * Requires authentication (falls under SecurityConfig's default
      * "everything else needs a real user" rule), so {@code user} is never
@@ -141,7 +156,7 @@ public class AdvertisementController {
     public void deleteAdvertisement(
             @PathVariable Long id,
             @AuthenticationPrincipal AuthenticatedUser user) {
-        boolean isAdmin = Role.ADMIN.name().equals(user.role());
+        boolean isAdmin = (user != null) && Role.ADMIN.name().equals(user.role());
         advertisementService.deleteAdvertisement(id, user.userId(), isAdmin);
     }
 }

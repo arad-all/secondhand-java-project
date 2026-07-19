@@ -3,6 +3,7 @@ package backend.service;
 import backend.controller.dto.AdvertisementDetailResponse;
 import backend.controller.dto.AdvertisementSummaryResponse;
 import backend.controller.dto.CreateAdvertisementRequest;
+import backend.controller.dto.UpdateAdvertisementRequest;
 import backend.exception.ForbiddenActionException;
 import backend.exception.InvalidStateTransitionException;
 import backend.exception.ResourceNotFoundException;
@@ -288,6 +289,62 @@ public class AdvertisementService {
         }
 
         ad.setStatus(AdvertisementStatus.DELETED);
+    }
+
+    /**
+     * Edits an advertisement's title/description/price/category/city.
+     * Owner or admin only ({@link ForbiddenActionException} otherwise),
+     * and only from {@link #DELETABLE_STATUSES}
+     * ({@link InvalidStateTransitionException} otherwise). Partial
+     * update: only non-null fields in {@code request} are applied.
+     */
+    @Transactional
+    public AdvertisementDetailResponse editAdvertisement(Long adId,
+                                                         UpdateAdvertisementRequest request,
+                                                         Long currentUserId,
+                                                         boolean isAdmin) {
+        Advertisement ad = advertisementRepository.findById(adId)
+                .orElseThrow(() -> notFound(adId));
+
+        boolean isOwner = ad.getOwner().getId().equals(currentUserId);
+        if (!isOwner && !isAdmin) {
+            throw new ForbiddenActionException("Only the ad's owner or an admin can edit this advertisement.");
+        }
+        if (!DELETABLE_STATUSES.contains(ad.getStatus())) {
+            throw new InvalidStateTransitionException(
+                    "Cannot edit advertisement from status " + ad.getStatus() + ".");
+        }
+
+        Category category = null;
+        if (request.categoryId() != null) {
+            category = categoryRepository.findById(request.categoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Category with id " + request.categoryId() + " not found."));
+        }
+        City city = null;
+        if (request.cityId() != null) {
+            city = cityRepository.findById(request.cityId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "City with id " + request.cityId() + " not found."));
+        }
+
+        if (request.title() != null) {
+            ad.setTitle(request.title());
+        }
+        if (request.description() != null) {
+            ad.setDescription(request.description());
+        }
+        if (request.price() != null) {
+            ad.setPrice(request.price());
+        }
+        if (category != null) {
+            ad.setCategory(category);
+        }
+        if (city != null) {
+            ad.setCity(city);
+        }
+
+        return AdvertisementMapper.toDetail(ad);
     }
 
     private static ResourceNotFoundException notFound(Long id) {
