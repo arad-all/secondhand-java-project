@@ -56,6 +56,16 @@ public class Advertisement extends BaseEntity {
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
 
+    /**
+     * Who bought this ad — {@code null} until {@code markAsSold} sets it,
+     * and never set otherwise. This is the source of truth for "who is
+     * allowed to rate this ad's seller" (see {@code RatingService#rate}),
+     * not just a display detail.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "buyer_id")
+    private User buyer;
+
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
