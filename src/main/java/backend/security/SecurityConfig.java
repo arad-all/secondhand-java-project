@@ -110,6 +110,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,
                                 "/api/categories", "/api/categories/**",
                                 "/api/cities", "/api/cities/**").permitAll()
+                        // A seller's reputation is meant to be visible before you'd
+                        // ever log in to buy from them, same reasoning as ad browsing.
+                        .requestMatchers(HttpMethod.GET, "/api/users/*/ratings").permitAll()
                         .anyRequest().authenticated())
                 // Turns Spring Security's own rejections (no/invalid token on a
                 // protected path -> 401; wrong role -> 403) into the same
