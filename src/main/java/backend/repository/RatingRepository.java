@@ -20,10 +20,12 @@ public interface RatingRepository extends JpaRepository<Rating, Long> {
     boolean existsByAdvertisementIdAndBuyerId(Long advertisementId, Long buyerId);
 
     /**
-     * A seller's ratings/reviews list needs to show who left each rating,
-     * so {@code buyer} is fetched eagerly to avoid an N+1 lazy load per row.
+     * A seller's ratings/reviews list needs to show who left each rating
+     * and which ad it was for, so {@code buyer}, {@code seller}, and
+     * {@code advertisement} — everything {@code RatingMapper#toResponse}
+     * needs — are fetched eagerly to avoid an N+1 lazy load per row.
      */
-    @EntityGraph(attributePaths = "buyer")
+    @EntityGraph(attributePaths = {"buyer", "seller", "advertisement"})
     List<Rating> findBySellerId(Long sellerId);
 
     long countBySellerId(Long sellerId);
