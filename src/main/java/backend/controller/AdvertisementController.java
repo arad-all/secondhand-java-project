@@ -1,8 +1,6 @@
 package backend.controller;
 
-import backend.controller.dto.AdvertisementDetailResponse;
-import backend.controller.dto.AdvertisementSummaryResponse;
-import backend.controller.dto.CreateAdvertisementRequest;
+import backend.controller.dto.*;
 import backend.model.enums.AdvertisementStatus;
 import backend.model.enums.Role;
 import backend.security.AuthenticatedUser;
@@ -23,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -60,6 +59,30 @@ public class AdvertisementController {
     }
 
     /**
+     * Public keyword/filter search — category, city, price range, and a
+     * free-text keyword against title/description — on top of the plain
+     * listing {@link #getActiveAdvertisements} provides.
+     * <p>
+     * {@code status} defaults to {@code ACTIVE}; whether a non-ACTIVE value
+     * is actually honored is decided by {@link AdvertisementService#search}
+     * based on {@code isAdmin}, resolved here from the JWT the same way
+     * {@link #getAdvertisementById} already does.
+     */
+    @GetMapping("/search")
+    public Page<AdvertisementSummaryResponse> search(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long cityId,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false, defaultValue = "ACTIVE") AdvertisementStatus status,
+            @AuthenticationPrincipal AuthenticatedUser user,
+            Pageable pageable) {
+        boolean isAdmin = (user != null) && Role.ADMIN.name().equals(user.role());
+        return advertisementService.search(keyword, categoryId, cityId, minPrice, maxPrice, status, isAdmin, pageable);
+    }
+
+    /**
      * The caller's own advertisements, in any status. Requires
      * authentication (see SecurityConfig: {@code GET /api/advertisements/my}
      * is carved out from the public read rule), so {@code user} is never
@@ -90,6 +113,20 @@ public class AdvertisementController {
     }
 
     /**
+     * Edits an advertisement's own fields. Partial update — only fields
+     * present in the body are changed. Owner-or-admin check happens in
+     * the service; this just resolves {@code isAdmin} from the JWT.
+     */
+    @PatchMapping("/{id}")
+    public AdvertisementDetailResponse editAdvertisement(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateAdvertisementRequest request,
+            @AuthenticationPrincipal AuthenticatedUser user) {
+        boolean isAdmin = Role.ADMIN.name().equals(user.role());
+        return advertisementService.editAdvertisement(id, request, user.userId(), isAdmin);
+    }
+
+    /**
      * Creates a new advertisement, owned by the authenticated caller.
      * Requires authentication (falls under SecurityConfig's default
      * "everything else needs a real user" rule), so {@code user} is never
@@ -106,8 +143,9 @@ public class AdvertisementController {
     @PatchMapping("/{id}/sold")
     public AdvertisementDetailResponse markAsSold(
             @PathVariable Long id,
+            @Valid @RequestBody MarkAsSoldRequest request,
             @AuthenticationPrincipal AuthenticatedUser user) {
-        return advertisementService.markAsSold(id, user.userId());
+        return advertisementService.markAsSold(id, user.userId(), request.buyerId());
     }
 
     /** Soft-deletes an advertisement. Owner or admin only. */
@@ -116,7 +154,7 @@ public class AdvertisementController {
     public void deleteAdvertisement(
             @PathVariable Long id,
             @AuthenticationPrincipal AuthenticatedUser user) {
-        boolean isAdmin = Role.ADMIN.name().equals(user.role());
+        boolean isAdmin = (user != null) && Role.ADMIN.name().equals(user.role());
         advertisementService.deleteAdvertisement(id, user.userId(), isAdmin);
     }
 }

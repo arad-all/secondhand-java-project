@@ -3,6 +3,7 @@ package backend.service;
 import backend.controller.dto.AdvertisementDetailResponse;
 import backend.controller.dto.AdvertisementSummaryResponse;
 import backend.controller.dto.CreateAdvertisementRequest;
+import backend.controller.dto.UpdateAdvertisementRequest;
 import backend.exception.ForbiddenActionException;
 import backend.exception.InvalidStateTransitionException;
 import backend.exception.ResourceNotFoundException;
@@ -64,21 +65,31 @@ public class AdvertisementService {
     private final UserRepository userRepository;
 
     /**
-     * Public browse/search. Always forces {@code status = ACTIVE},
-     * regardless of any caller input — the repository's {@code search()}
-     * deliberately throws if status is null for exactly this reason, so
-     * this is the one and only place that decides the value. Never let a
-     * future refactor take status from the caller here.
+     * Keyword/filter browse-and-search. Unlike {@link #getActiveAdvertisements},
+     * this supports narrowing by category, city, price range, and a
+     * free-text keyword (matched against title/description) on top of the
+     * required {@code status}.
+     * <p>
+     * Only an {@code ADMIN} caller may search anything other than
+     * {@code ACTIVE} — anyone else's requested {@code status} is silently
+     * overridden back to {@code ACTIVE}, the same visibility rule
+     * {@link #getById} enforces for the single-ad view. {@code isAdmin} is
+     * resolved by the controller from the JWT and passed in as a plain
+     * boolean; this method is what actually decides what that identity is
+     * allowed to do with it.
      */
     @Transactional(readOnly = true)
     public Page<AdvertisementSummaryResponse> search(String keyword,
-                                                       Long categoryId,
-                                                       Long cityId,
-                                                       BigDecimal minPrice,
-                                                       BigDecimal maxPrice,
-                                                       Pageable pageable) {
+                                                     Long categoryId,
+                                                     Long cityId,
+                                                     BigDecimal minPrice,
+                                                     BigDecimal maxPrice,
+                                                     AdvertisementStatus status,
+                                                     boolean isAdmin,
+                                                     Pageable pageable) {
+        AdvertisementStatus effectiveStatus = isAdmin ? status : AdvertisementStatus.ACTIVE;
         Page<Advertisement> results = advertisementRepository.search(
-                AdvertisementStatus.ACTIVE, categoryId, cityId, minPrice, maxPrice, keyword, pageable);
+                effectiveStatus, categoryId, cityId, minPrice, maxPrice, keyword, pageable);
         return results.map(AdvertisementMapper::toSummary);
     }
 
@@ -236,10 +247,14 @@ public class AdvertisementService {
     /**
      * Marks the ad sold. Owner-only, and only a valid transition from
      * {@code ACTIVE} — trying to sell a PENDING_REVIEW/REJECTED/DELETED/
-     * already-SOLD ad is rejected, not silently accepted.
+     * already-SOLD ad is rejected, not silently accepted. Also records
+     * {@code buyerId} as the ad's buyer — this becomes the one fact
+     * {@code RatingService#rate} trusts to confirm who's allowed to rate
+     * the seller, so it's validated here, not taken on faith: the buyer
+     * must be a real user, and can't be the owner themselves.
      */
     @Transactional
-    public AdvertisementDetailResponse markAsSold(Long adId, Long ownerId) {
+    public AdvertisementDetailResponse markAsSold(Long adId, Long ownerId, Long buyerId) {
         Advertisement ad = advertisementRepository.findById(adId)
                 .orElseThrow(() -> notFound(adId));
 
@@ -250,7 +265,13 @@ public class AdvertisementService {
             throw new InvalidStateTransitionException(
                     "Cannot mark advertisement as SOLD from status " + ad.getStatus() + ".");
         }
+        if (buyerId.equals(ownerId)) {
+            throw new ForbiddenActionException("The owner cannot be recorded as the buyer of their own advertisement.");
+        }
+        User buyer = userRepository.findById(buyerId)
+                .orElseThrow(() -> new ResourceNotFoundException("User with id " + buyerId + " not found."));
 
+        ad.setBuyer(buyer);
         ad.setStatus(AdvertisementStatus.SOLD);
         return AdvertisementMapper.toDetail(ad);
     }
@@ -278,6 +299,62 @@ public class AdvertisementService {
         }
 
         ad.setStatus(AdvertisementStatus.DELETED);
+    }
+
+    /**
+     * Edits an advertisement's title/description/price/category/city.
+     * Owner or admin only ({@link ForbiddenActionException} otherwise),
+     * and only from {@link #DELETABLE_STATUSES}
+     * ({@link InvalidStateTransitionException} otherwise). Partial
+     * update: only non-null fields in {@code request} are applied.
+     */
+    @Transactional
+    public AdvertisementDetailResponse editAdvertisement(Long adId,
+                                                         UpdateAdvertisementRequest request,
+                                                         Long currentUserId,
+                                                         boolean isAdmin) {
+        Advertisement ad = advertisementRepository.findById(adId)
+                .orElseThrow(() -> notFound(adId));
+
+        boolean isOwner = ad.getOwner().getId().equals(currentUserId);
+        if (!isOwner && !isAdmin) {
+            throw new ForbiddenActionException("Only the ad's owner or an admin can edit this advertisement.");
+        }
+        if (!DELETABLE_STATUSES.contains(ad.getStatus())) {
+            throw new InvalidStateTransitionException(
+                    "Cannot edit advertisement from status " + ad.getStatus() + ".");
+        }
+
+        Category category = null;
+        if (request.categoryId() != null) {
+            category = categoryRepository.findById(request.categoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Category with id " + request.categoryId() + " not found."));
+        }
+        City city = null;
+        if (request.cityId() != null) {
+            city = cityRepository.findById(request.cityId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "City with id " + request.cityId() + " not found."));
+        }
+
+        if (request.title() != null) {
+            ad.setTitle(request.title());
+        }
+        if (request.description() != null) {
+            ad.setDescription(request.description());
+        }
+        if (request.price() != null) {
+            ad.setPrice(request.price());
+        }
+        if (category != null) {
+            ad.setCategory(category);
+        }
+        if (city != null) {
+            ad.setCity(city);
+        }
+
+        return AdvertisementMapper.toDetail(ad);
     }
 
     private static ResourceNotFoundException notFound(Long id) {
