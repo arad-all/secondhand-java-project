@@ -1,9 +1,6 @@
 package backend.controller;
 
-import backend.controller.dto.AdvertisementDetailResponse;
-import backend.controller.dto.AdvertisementSummaryResponse;
-import backend.controller.dto.CreateAdvertisementRequest;
-import backend.controller.dto.UpdateAdvertisementRequest;
+import backend.controller.dto.*;
 import backend.model.enums.AdvertisementStatus;
 import backend.model.enums.Role;
 import backend.security.AuthenticatedUser;
@@ -146,8 +143,9 @@ public class AdvertisementController {
     @PatchMapping("/{id}/sold")
     public AdvertisementDetailResponse markAsSold(
             @PathVariable Long id,
+            @Valid @RequestBody MarkAsSoldRequest request,
             @AuthenticationPrincipal AuthenticatedUser user) {
-        return advertisementService.markAsSold(id, user.userId());
+        return advertisementService.markAsSold(id, user.userId(), request.buyerId());
     }
 
     /** Soft-deletes an advertisement. Owner or admin only. */

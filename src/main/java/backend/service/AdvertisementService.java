@@ -247,10 +247,14 @@ public class AdvertisementService {
     /**
      * Marks the ad sold. Owner-only, and only a valid transition from
      * {@code ACTIVE} — trying to sell a PENDING_REVIEW/REJECTED/DELETED/
-     * already-SOLD ad is rejected, not silently accepted.
+     * already-SOLD ad is rejected, not silently accepted. Also records
+     * {@code buyerId} as the ad's buyer — this becomes the one fact
+     * {@code RatingService#rate} trusts to confirm who's allowed to rate
+     * the seller, so it's validated here, not taken on faith: the buyer
+     * must be a real user, and can't be the owner themselves.
      */
     @Transactional
-    public AdvertisementDetailResponse markAsSold(Long adId, Long ownerId) {
+    public AdvertisementDetailResponse markAsSold(Long adId, Long ownerId, Long buyerId) {
         Advertisement ad = advertisementRepository.findById(adId)
                 .orElseThrow(() -> notFound(adId));
 
@@ -261,7 +265,13 @@ public class AdvertisementService {
             throw new InvalidStateTransitionException(
                     "Cannot mark advertisement as SOLD from status " + ad.getStatus() + ".");
         }
+        if (buyerId.equals(ownerId)) {
+            throw new ForbiddenActionException("The owner cannot be recorded as the buyer of their own advertisement.");
+        }
+        User buyer = userRepository.findById(buyerId)
+                .orElseThrow(() -> new ResourceNotFoundException("User with id " + buyerId + " not found."));
 
+        ad.setBuyer(buyer);
         ad.setStatus(AdvertisementStatus.SOLD);
         return AdvertisementMapper.toDetail(ad);
     }
