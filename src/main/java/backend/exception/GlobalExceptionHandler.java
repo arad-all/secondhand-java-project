@@ -114,8 +114,7 @@ public class GlobalExceptionHandler {
      * a bug, an unexpected repository/database exception, etc. Deliberately
      * generic on the message so internal details (class names, SQL,
      * stack traces) never reach the client; the real exception should
-     * still be logged server-side for debugging (left as a TODO: wire in
-     * a logger here once one is set up for the project).
+     * still be logged server-side for debugging.
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpectedException(Exception ex) {
