@@ -154,7 +154,7 @@ public class AdvertisementController {
     public void deleteAdvertisement(
             @PathVariable Long id,
             @AuthenticationPrincipal AuthenticatedUser user) {
-        boolean isAdmin = (user != null) && Role.ADMIN.name().equals(user.role());
+        boolean isAdmin = Role.ADMIN.name().equals(user.role());
         advertisementService.deleteAdvertisement(id, user.userId(), isAdmin);
     }
 }
