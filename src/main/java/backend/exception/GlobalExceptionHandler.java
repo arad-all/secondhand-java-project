@@ -10,6 +10,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.stream.Collectors;
 
@@ -107,6 +108,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(new ErrorResponse("Authentication required.", HttpStatus.UNAUTHORIZED.value()));
+    }
+
+    /**
+     * Thrown by Spring's multipart handling when an uploaded file (or the
+     * whole multipart request) exceeds {@code spring.servlet.multipart.max-file-size}
+     * / {@code max-request-size}. Without this handler it would fall
+     * through to {@link #handleUnexpectedException} below and return a
+     * misleading 500 for what is really an oversized-request problem.
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("Uploaded file(s) exceed the maximum allowed size.", HttpStatus.BAD_REQUEST.value()));
     }
 
     /**
