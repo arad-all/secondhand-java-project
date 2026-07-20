@@ -16,6 +16,7 @@ public record AdvertisementDetailResponse(
         String categoryName,
         String status,
         String ownerUsername,
+        String buyerUsername,
         List<String> imageUrls
 ) {
 }
