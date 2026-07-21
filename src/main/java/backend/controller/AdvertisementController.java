@@ -61,9 +61,9 @@ public class AdvertisementController {
      * itself instead of {@code .getContent()}.
      */
     @GetMapping
-    public List<AdvertisementSummaryResponse> getActiveAdvertisements(
+    public Page<AdvertisementSummaryResponse> getActiveAdvertisements(
             @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return advertisementService.getActiveAdvertisements(pageable).getContent();
+        return advertisementService.getActiveAdvertisements(pageable);
     }
 
     /**
