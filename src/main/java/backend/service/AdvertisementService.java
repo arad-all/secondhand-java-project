@@ -99,8 +99,11 @@ public class AdvertisementService {
                                                      boolean isAdmin,
                                                      Pageable pageable) {
         AdvertisementStatus effectiveStatus = isAdmin ? status : AdvertisementStatus.ACTIVE;
+        List<Long> categoryIds = (categoryId != null)
+                ? categoryRepository.findIdsIncludingDescendants(categoryId)
+                : null;
         Page<Advertisement> results = advertisementRepository.search(
-                effectiveStatus, categoryId, cityId, minPrice, maxPrice, keyword, pageable);
+                effectiveStatus, categoryIds, cityId, minPrice, maxPrice, keyword, pageable);
         return results.map(AdvertisementMapper::toSummary);
     }
 
