@@ -1,6 +1,7 @@
 package backend.repository;
 
 import backend.model.entity.Advertisement;
+import backend.model.enums.AccountStatus;
 import backend.model.enums.AdvertisementStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +38,15 @@ public interface AdvertisementRepository extends JpaRepository<Advertisement, Lo
     @EntityGraph(attributePaths = {"owner", "category", "city"})
     Page<Advertisement> findByStatus(AdvertisementStatus status, Pageable pageable);
 
+    /**
+     * Same as {@link #findByStatus}, additionally requiring the owner's
+     * account to be in the given {@link AccountStatus}. Used for the
+     * plain public listing so a blocked user's ads never show up there,
+     * even though the ads themselves are still {@code ACTIVE}.
+     */
+    @EntityGraph(attributePaths = {"owner", "category", "city"})
+    Page<Advertisement> findByStatusAndOwnerStatus(AdvertisementStatus status, AccountStatus ownerStatus, Pageable pageable);
+
     @EntityGraph(attributePaths = {"owner", "category", "city"})
     Page<Advertisement> findByOwnerId(Long ownerId, Pageable pageable);
 
@@ -66,6 +76,7 @@ public interface AdvertisementRepository extends JpaRepository<Advertisement, Lo
     @Query("""
             SELECT a FROM Advertisement a
             WHERE a.status = :status
+              AND (:ownerStatus IS NULL OR a.owner.status = :ownerStatus)
               AND (:categoryIds IS NULL OR a.category.id IN :categoryIds)
               AND (:cityId IS NULL OR a.city.id = :cityId)
               AND (:minPrice IS NULL OR a.price >= :minPrice)
@@ -75,6 +86,7 @@ public interface AdvertisementRepository extends JpaRepository<Advertisement, Lo
                    OR LOWER(a.description) LIKE LOWER(:pattern))
             """)
     Page<Advertisement> searchInternal(@Param("status") AdvertisementStatus status,
+                                       @Param("ownerStatus") AccountStatus ownerStatus,
                                        @Param("categoryIds") List<Long> categoryIds,
                                         @Param("cityId") Long cityId,
                                         @Param("minPrice") BigDecimal minPrice,
@@ -86,12 +98,18 @@ public interface AdvertisementRepository extends JpaRepository<Advertisement, Lo
      * Multi-filter search for the browse page. {@code status} must be
      * supplied by the caller (the service layer should default this to
      * {@code ACTIVE} for any public-facing search) and is always applied,
-     * so pending/rejected/sold ads can't leak into results. Every other
-     * parameter can be {@code null} to skip that filter; {@code keyword}
-     * is matched case-insensitively against both the title and the
-     * description.
+     * so pending/rejected/sold ads can't leak into results. {@code ownerStatus}
+     * works the same way but is allowed to be {@code null}: the service
+     * layer passes {@code ACTIVE} for a public/non-admin search (so a
+     * blocked user's ads never leak into results, even while their ads
+     * themselves are still {@code ACTIVE}) and {@code null} for an admin
+     * search (who needs to be able to find ads regardless of the owner's
+     * account status). Every other parameter can be {@code null} to skip
+     * that filter; {@code keyword} is matched case-insensitively against
+     * both the title and the description.
      */
     default Page<Advertisement> search(AdvertisementStatus status,
+                                       AccountStatus ownerStatus,
                                        List<Long> categoryIds,
                                         Long cityId,
                                         BigDecimal minPrice,
@@ -103,6 +121,6 @@ public interface AdvertisementRepository extends JpaRepository<Advertisement, Lo
                     "(e.g. ACTIVE for public search) so non-public ads can't leak into results");
         }
         String pattern = (keyword == null || keyword.isBlank()) ? null : "%" + keyword.trim() + "%";
-        return searchInternal(status, categoryIds, cityId, minPrice, maxPrice, pattern, pageable);
+        return searchInternal(status, ownerStatus, categoryIds, cityId, minPrice, maxPrice, pattern, pageable);
     }
 }

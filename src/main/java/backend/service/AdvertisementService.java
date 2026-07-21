@@ -14,6 +14,7 @@ import backend.model.entity.AdvertisementImage;
 import backend.model.entity.Category;
 import backend.model.entity.City;
 import backend.model.entity.User;
+import backend.model.enums.AccountStatus;
 import backend.model.enums.AdvertisementStatus;
 import backend.repository.AdvertisementImageRepository;
 import backend.repository.AdvertisementRepository;
@@ -88,6 +89,13 @@ public class AdvertisementService {
      * resolved by the controller from the JWT and passed in as a plain
      * boolean; this method is what actually decides what that identity is
      * allowed to do with it.
+     * <p>
+     * Same reasoning applies to the owner's account status: a non-admin
+     * caller only ever sees ads owned by an {@code ACTIVE} account, so a
+     * blocked user's ads disappear from public search immediately, even
+     * though the ads themselves are still {@code ACTIVE}. An admin's
+     * search isn't filtered this way, since moderation may need to find
+     * an ad regardless of its owner's current standing.
      */
     @Transactional(readOnly = true)
     public Page<AdvertisementSummaryResponse> search(String keyword,
@@ -99,11 +107,12 @@ public class AdvertisementService {
                                                      boolean isAdmin,
                                                      Pageable pageable) {
         AdvertisementStatus effectiveStatus = isAdmin ? status : AdvertisementStatus.ACTIVE;
+        AccountStatus ownerStatus = isAdmin ? null : AccountStatus.ACTIVE;
         List<Long> categoryIds = (categoryId != null)
                 ? categoryRepository.findIdsIncludingDescendants(categoryId)
                 : null;
         Page<Advertisement> results = advertisementRepository.search(
-                effectiveStatus, categoryIds, cityId, minPrice, maxPrice, keyword, pageable);
+                effectiveStatus, ownerStatus, categoryIds, cityId, minPrice, maxPrice, keyword, pageable);
         return results.map(AdvertisementMapper::toSummary);
     }
 
@@ -118,17 +127,26 @@ public class AdvertisementService {
      * here, even though the controller currently unwraps it into a flat
      * list (the JavaFX client doesn't send or understand pagination yet)
      * — so the moment that's wired up, this method needs no changes.
+     * <p>
+     * Also requires the owner's account to be {@code ACTIVE}: this is a
+     * fully public, unauthenticated endpoint, so a blocked user's ads must
+     * never appear here, same as {@link #search} enforces for its own
+     * non-admin callers.
      */
     @Transactional(readOnly = true)
     public Page<AdvertisementSummaryResponse> getActiveAdvertisements(Pageable pageable) {
-        return advertisementRepository.findByStatus(AdvertisementStatus.ACTIVE, pageable)
+        return advertisementRepository.findByStatusAndOwnerStatus(AdvertisementStatus.ACTIVE, AccountStatus.ACTIVE, pageable)
                 .map(AdvertisementMapper::toSummary);
     }
 
     /**
      * Fetches one advertisement's detail view. An {@code ACTIVE} ad is
      * visible to anyone; anything else (pending review, rejected, sold,
-     * deleted) is visible only to its owner or an admin. Any other caller
+     * deleted) is visible only to its owner or an admin. An ad owned by a
+     * {@code BLOCKED} account is treated the same way — hidden from
+     * everyone except the owner (moot in practice, since a blocked
+     * account's requests are rejected before they ever reach this method;
+     * see {@code JwtAuthenticationFilter}) or an admin. Any other caller
      * gets the exact same {@link ResourceNotFoundException} as a truly
      * missing id — never a 403 — so this never leaks whether a
      * non-visible ad exists.
@@ -142,7 +160,8 @@ public class AdvertisementService {
                 .orElseThrow(() -> notFound(id));
 
         boolean isOwner = currentUserId != null && ad.getOwner().getId().equals(currentUserId);
-        if (ad.getStatus() != AdvertisementStatus.ACTIVE && !isOwner && !isAdmin) {
+        boolean ownerBlocked = ad.getOwner().getStatus() == AccountStatus.BLOCKED;
+        if ((ad.getStatus() != AdvertisementStatus.ACTIVE || ownerBlocked) && !isOwner && !isAdmin) {
             throw notFound(id);
         }
 
