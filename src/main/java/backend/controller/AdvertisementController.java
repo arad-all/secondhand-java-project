@@ -6,9 +6,13 @@ import backend.model.enums.Role;
 import backend.security.AuthenticatedUser;
 import backend.service.AdvertisementService;
 import jakarta.validation.Valid;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.MediaTypeFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -154,7 +159,41 @@ public class AdvertisementController {
     public void deleteAdvertisement(
             @PathVariable Long id,
             @AuthenticationPrincipal AuthenticatedUser user) {
-        boolean isAdmin = (user != null) && Role.ADMIN.name().equals(user.role());
+        boolean isAdmin = Role.ADMIN.name().equals(user.role());
         advertisementService.deleteAdvertisement(id, user.userId(), isAdmin);
+    }
+
+    /**
+     * Adds one or more images to the caller's own advertisement. Requires
+     * authentication (falls under SecurityConfig's default "everything
+     * else needs a real user" rule, same as {@link #createAdvertisement}),
+     * so {@code user} is never null here; owner-only enforcement happens
+     * in the service. {@code files} is deliberately optional at the HTTP
+     * layer ({@code required = false}) so a request with no {@code files}
+     * part gets the service's own {@code InvalidFileException} (a clean
+     * 400) instead of Spring's generic missing-parameter exception, which
+     * {@code GlobalExceptionHandler} doesn't special-case.
+     */
+    @PostMapping(value = "/{id}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public AdvertisementDetailResponse addImages(
+            @PathVariable Long id,
+            @RequestParam(value = "files", required = false) List<MultipartFile> files,
+            @AuthenticationPrincipal AuthenticatedUser user) {
+        return advertisementService.addImages(id, files, user.userId());
+    }
+
+    /**
+     * Serves a previously uploaded image's raw bytes. Public, like the
+     * other {@code GET /api/advertisements/**} routes (see SecurityConfig)
+     * — anyone who has an image's URL (e.g. from an
+     * {@link AdvertisementDetailResponse}) can load it directly, the same
+     * way a plain image-hosting URL would work, rather than requiring a
+     * second authenticated round trip just to view a picture.
+     */
+    @GetMapping("/{id}/images/{filename}")
+    public ResponseEntity<Resource> getImage(@PathVariable Long id, @PathVariable String filename) {
+        Resource resource = advertisementService.loadImage(id, filename);
+        MediaType mediaType = MediaTypeFactory.getMediaType(resource).orElse(MediaType.APPLICATION_OCTET_STREAM);
+        return ResponseEntity.ok().contentType(mediaType).body(resource);
     }
 }

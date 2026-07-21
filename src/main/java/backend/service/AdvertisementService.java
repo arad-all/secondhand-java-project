@@ -5,26 +5,32 @@ import backend.controller.dto.AdvertisementSummaryResponse;
 import backend.controller.dto.CreateAdvertisementRequest;
 import backend.controller.dto.UpdateAdvertisementRequest;
 import backend.exception.ForbiddenActionException;
+import backend.exception.InvalidFileException;
 import backend.exception.InvalidStateTransitionException;
 import backend.exception.ResourceNotFoundException;
 import backend.mapper.AdvertisementMapper;
 import backend.model.entity.Advertisement;
+import backend.model.entity.AdvertisementImage;
 import backend.model.entity.Category;
 import backend.model.entity.City;
 import backend.model.entity.User;
 import backend.model.enums.AdvertisementStatus;
+import backend.repository.AdvertisementImageRepository;
 import backend.repository.AdvertisementRepository;
 import backend.repository.CategoryRepository;
 import backend.repository.CityRepository;
 import backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -59,10 +65,15 @@ public class AdvertisementService {
     private static final Set<AdvertisementStatus> DELETABLE_STATUSES =
             Set.of(AdvertisementStatus.ACTIVE, AdvertisementStatus.PENDING_REVIEW, AdvertisementStatus.REJECTED);
 
+    /** Upper bound on images per advertisement, to keep uploads bounded. */
+    private static final int MAX_IMAGES_PER_ADVERTISEMENT = 8;
+
     private final AdvertisementRepository advertisementRepository;
     private final CategoryRepository categoryRepository;
     private final CityRepository cityRepository;
     private final UserRepository userRepository;
+    private final AdvertisementImageRepository advertisementImageRepository;
+    private final FileStorageService fileStorageService;
 
     /**
      * Keyword/filter browse-and-search. Unlike {@link #getActiveAdvertisements},
@@ -88,8 +99,11 @@ public class AdvertisementService {
                                                      boolean isAdmin,
                                                      Pageable pageable) {
         AdvertisementStatus effectiveStatus = isAdmin ? status : AdvertisementStatus.ACTIVE;
+        List<Long> categoryIds = (categoryId != null)
+                ? categoryRepository.findIdsIncludingDescendants(categoryId)
+                : null;
         Page<Advertisement> results = advertisementRepository.search(
-                effectiveStatus, categoryId, cityId, minPrice, maxPrice, keyword, pageable);
+                effectiveStatus, categoryIds, cityId, minPrice, maxPrice, keyword, pageable);
         return results.map(AdvertisementMapper::toSummary);
     }
 
@@ -355,6 +369,83 @@ public class AdvertisementService {
         }
 
         return AdvertisementMapper.toDetail(ad);
+    }
+
+    /**
+     * Adds one or more images to an advertisement. Owner-only (unlike
+     * {@link #editAdvertisement} / {@link #deleteAdvertisement}, an admin
+     * cannot add images to someone else's ad — there's no legitimate
+     * reason for an admin to be supplying photos of another user's item),
+     * and only while the ad is in one of {@link #DELETABLE_STATUSES} — the
+     * same "still editable" set {@link #editAdvertisement} enforces, since
+     * adding photos to an already-{@code SOLD}/{@code DELETED} listing
+     * makes no more sense than editing its title would.
+     * <p>
+     * Files are validated and written to disk one at a time via
+     * {@link FileStorageService#store}; if any file in the batch fails
+     * (bad type, empty, I/O error), every file already stored earlier in
+     * this same call is deleted again before the exception propagates, so
+     * a partially-failed upload doesn't leave orphaned files on disk.
+     * New images are appended after any existing ones, continuing the
+     * {@code displayOrder} sequence rather than restarting it.
+     */
+    @Transactional
+    public AdvertisementDetailResponse addImages(Long adId, List<MultipartFile> files, Long currentUserId) {
+        if (files == null || files.isEmpty()) {
+            throw new InvalidFileException("At least one image file is required.");
+        }
+
+        Advertisement ad = advertisementRepository.findById(adId)
+                .orElseThrow(() -> notFound(adId));
+
+        if (!ad.getOwner().getId().equals(currentUserId)) {
+            throw new ForbiddenActionException("Only the ad's owner can add images to this advertisement.");
+        }
+        if (!DELETABLE_STATUSES.contains(ad.getStatus())) {
+            throw new InvalidStateTransitionException(
+                    "Cannot add images to advertisement from status " + ad.getStatus() + ".");
+        }
+
+        long existingCount = advertisementImageRepository.countByAdvertisementId(adId);
+        if (existingCount + files.size() > MAX_IMAGES_PER_ADVERTISEMENT) {
+            throw new InvalidFileException(
+                    "This advertisement already has " + existingCount + " image(s); at most "
+                            + MAX_IMAGES_PER_ADVERTISEMENT + " are allowed in total.");
+        }
+
+        List<String> storedFilenames = new ArrayList<>();
+        int displayOrder = (int) existingCount;
+        try {
+            for (MultipartFile file : files) {
+                String filename = fileStorageService.store(adId, file);
+                storedFilenames.add(filename);
+
+                AdvertisementImage image = new AdvertisementImage();
+                image.setAdvertisement(ad);
+                image.setImagePath(filename);
+                image.setDisplayOrder(displayOrder++);
+                ad.getImages().add(image);
+            }
+        } catch (RuntimeException e) {
+            storedFilenames.forEach(filename -> fileStorageService.delete(adId, filename));
+            throw e;
+        }
+
+        return AdvertisementMapper.toDetail(ad);
+    }
+
+    /**
+     * Resolves a stored image back to a readable {@link Resource} for the
+     * download endpoint. Confirms the filename is actually recorded
+     * against this advertisement (not just present somewhere on disk)
+     * before touching the filesystem, so a stale or mismatched filename
+     * gets the same 404 as one that never existed.
+     */
+    @Transactional(readOnly = true)
+    public Resource loadImage(Long adId, String filename) {
+        advertisementImageRepository.findByAdvertisementIdAndImagePath(adId, filename)
+                .orElseThrow(() -> new ResourceNotFoundException("Image not found."));
+        return fileStorageService.load(adId, filename);
     }
 
     private static ResourceNotFoundException notFound(Long id) {

@@ -34,13 +34,19 @@ public final class AdvertisementMapper {
                 ad.getStatus().name());
     }
 
-    /** Full detail view, including image URLs in display order. */
+    /**
+     * Full detail view, including image URLs in display order. Each URL
+     * is the path to {@code AdvertisementController#getImage}, built from
+     * the advertisement's id and the image's stored filename — callers
+     * never see the raw on-disk filename ({@link AdvertisementImage#getImagePath()})
+     * by itself, only this resolvable path.
+     */
     public static AdvertisementDetailResponse toDetail(Advertisement ad) {
         List<String> imageUrls = ad.getImages().stream()
                 .sorted(Comparator.comparing(
                         AdvertisementImage::getDisplayOrder,
                         Comparator.nullsLast(Comparator.naturalOrder())))
-                .map(AdvertisementImage::getImagePath)
+                .map(image -> "/api/advertisements/" + ad.getId() + "/images/" + image.getImagePath())
                 .toList();
 
         return new AdvertisementDetailResponse(

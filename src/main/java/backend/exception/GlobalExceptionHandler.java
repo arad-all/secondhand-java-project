@@ -1,11 +1,16 @@
 package backend.exception;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.stream.Collectors;
 
@@ -26,6 +31,8 @@ import java.util.stream.Collectors;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
      * Every business-rule exception the service layer throws extends
@@ -65,16 +72,68 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Thrown by {@code @PreAuthorize} (e.g. {@code CategoryController.create},
+     * {@code CityController.create}) when an authenticated caller doesn't
+     * hold the required role. Without this handler, {@link Exception} below
+     * would catch it instead — {@code @PreAuthorize} throws this from
+     * *inside* the controller-method invocation, which Spring MVC's own
+     * exception resolution (i.e. this class) sees before the exception ever
+     * has a chance to reach {@code SecurityConfig}'s
+     * {@code accessDeniedHandler}. Filter-chain-level denials (e.g.
+     * {@code /api/admin/**}) never reach here at all — those are rejected
+     * earlier, by Spring Security itself, and already get a proper 403 from
+     * {@code SecurityConfig}. This handler exists purely so
+     * method-security denials get the same correct 403 instead of falling
+     * through to {@link #handleUnexpectedException}.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse("You do not have permission to perform this action.", HttpStatus.FORBIDDEN.value()));
+    }
+
+    /**
+     * Thrown when an operation requires a recognized caller but none is
+     * present. Not currently reachable in practice — {@link
+     * backend.security.JwtAuthenticationFilter} never throws this, and
+     * missing/invalid tokens on a protected route are rejected by
+     * {@code SecurityConfig}'s {@code authenticationEntryPoint} before
+     * reaching a controller — but handled explicitly anyway, for the same
+     * reason as {@link #handleAccessDenied}: without this, any future code
+     * that throws it would otherwise silently become a 500 instead of 401.
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponse("Authentication required.", HttpStatus.UNAUTHORIZED.value()));
+    }
+
+    /**
+     * Thrown by Spring's multipart handling when an uploaded file (or the
+     * whole multipart request) exceeds {@code spring.servlet.multipart.max-file-size}
+     * / {@code max-request-size}. Without this handler it would fall
+     * through to {@link #handleUnexpectedException} below and return a
+     * misleading 500 for what is really an oversized-request problem.
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("Uploaded file(s) exceed the maximum allowed size.", HttpStatus.BAD_REQUEST.value()));
+    }
+
+    /**
      * Last-resort safety net for anything not already handled above —
      * a bug, an unexpected repository/database exception, etc. Deliberately
      * generic on the message so internal details (class names, SQL,
      * stack traces) never reach the client; the real exception should
-     * still be logged server-side for debugging (left as a TODO: wire in
-     * a logger here once one is set up for the project).
+     * still be logged server-side for debugging.
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpectedException(Exception ex) {
-        // TODO: log ex server-side (e.g. via SLF4J) once logging is set up.
+        log.error("Unhandled exception reached GlobalExceptionHandler", ex);
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ErrorResponse("An unexpected error occurred.", HttpStatus.INTERNAL_SERVER_ERROR.value()));
