@@ -105,6 +105,17 @@ public class AdvertisementController {
     }
 
     /**
+     * Advertisements purchased by the authenticated caller. A user becomes
+     * the recorded buyer only when the seller marks an advertisement SOLD.
+     */
+    @GetMapping("/purchased")
+    public Page<AdvertisementSummaryResponse> getPurchasedAdvertisements(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return advertisementService.getPurchasedAdvertisements(user.userId(), pageable);
+    }
+
+    /**
      * Single advertisement's detail view. This route is public, so
      * {@code user} may be null (anonymous caller); the service itself
      * decides whether a non-ACTIVE ad is visible to this particular

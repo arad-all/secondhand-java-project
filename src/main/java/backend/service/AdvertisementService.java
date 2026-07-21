@@ -186,6 +186,18 @@ public class AdvertisementService {
     }
 
     /**
+     * Advertisements the caller purchased. The buyer relationship is set
+     * only by {@link #markAsSold} when an ACTIVE advertisement transitions
+     * to SOLD, so this list is the caller's purchase history rather than
+     * advertisements they merely messaged or favorited.
+     */
+    @Transactional(readOnly = true)
+    public Page<AdvertisementSummaryResponse> getPurchasedAdvertisements(Long buyerId, Pageable pageable) {
+        return advertisementRepository.findByBuyerId(buyerId, pageable)
+                .map(AdvertisementMapper::toSummary);
+    }
+
+    /**
      * Creates a new advertisement. The owner is always resolved from
      * {@code ownerId} — the caller's authenticated id, resolved by the
      * controller from the JWT — never from the request body, which has no

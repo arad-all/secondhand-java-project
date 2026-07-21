@@ -53,6 +53,10 @@ public interface AdvertisementRepository extends JpaRepository<Advertisement, Lo
     @EntityGraph(attributePaths = {"owner", "category", "city"})
     Page<Advertisement> findByOwnerIdAndStatus(Long ownerId, AdvertisementStatus status, Pageable pageable);
 
+    /** Advertisements purchased by a user, as recorded when an ad is marked SOLD. */
+    @EntityGraph(attributePaths = {"owner", "category", "city"})
+    Page<Advertisement> findByBuyerId(Long buyerId, Pageable pageable);
+
     @EntityGraph(attributePaths = {"owner", "category", "city"})
     List<Advertisement> findByCategoryIdAndStatus(Long categoryId, AdvertisementStatus status);
 

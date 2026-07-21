@@ -35,9 +35,10 @@ import java.io.IOException;
  * out as public because the services behind them are public-read by
  * design (plan §"Reference data" / §"Advertisements core"): browsing and
  * viewing ads, and listing categories/cities, need no current user.
- * {@code /api/advertisements/my} is deliberately matched *before* the
- * broader {@code /api/advertisements/**} public rule so that the more
- * specific "authenticated" requirement wins for that one path — Spring
+ * {@code /api/advertisements/my} and
+ * {@code /api/advertisements/purchased} are deliberately matched *before*
+ * the broader {@code /api/advertisements/**} public rule so that the more
+ * specific "authenticated" requirement wins for those paths — Spring
  * Security's {@code authorizeHttpRequests} evaluates matchers in
  * declaration order and stops at the first match.
  * <p>
@@ -97,10 +98,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         // More specific than the /api/advertisements/** rule below,
-                        // and declared first so it takes precedence: "my ads" always
-                        // needs a real caller, even though its path would otherwise
-                        // be swallowed by the public wildcard.
-                        .requestMatchers(HttpMethod.GET, "/api/advertisements/my").authenticated()
+                        // and declared first so it takes precedence: owner and purchase
+                        // history always need a real caller, even though these paths
+                        // would otherwise be swallowed by the public wildcard.
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/advertisements/my",
+                                "/api/advertisements/purchased").authenticated()
                         // Public browsing: search/list and single-ad lookups.
                         // AdvertisementService.getById still hides non-ACTIVE ads
                         // from non-owners/non-admins itself, so making this route
