@@ -3,18 +3,27 @@ package frontend.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import frontend.Main;
 import frontend.service.ApiClient;
+import frontend.service.SessionManager;
 import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextInputDialog;
 
 import java.io.IOException;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * UI logic for the advertisement details page. The id of the advertisement
- * to display is passed in via a static setter called by the list page
- * just before navigating here — simple enough for this project's needs,
- * no navigation framework required.
+ * to display is passed in via a static setter called by whichever page
+ * navigated here (list, my-advertisements, favorites, admin panel) —
+ * simple enough for this project's needs, no navigation framework required.
  */
 public class AdvertisementDetailsController {
+
+    private static final Set<String> EDITABLE_STATUSES = Set.of("ACTIVE", "PENDING_REVIEW", "REJECTED");
 
     private static Long selectedAdvertisementId;
 
@@ -33,6 +42,20 @@ public class AdvertisementDetailsController {
     @FXML
     private Label ownerLabel;
     @FXML
+    private Label buyerLabel;
+    @FXML
+    private Button favoriteButton;
+    @FXML
+    private Button editButton;
+    @FXML
+    private Button markAsSoldButton;
+    @FXML
+    private Button deleteButton;
+    @FXML
+    private Button approveButton;
+    @FXML
+    private Button rejectButton;
+    @FXML
     private Label errorLabel;
 
     private final ApiClient apiClient = new ApiClient();
@@ -47,7 +70,10 @@ public class AdvertisementDetailsController {
             errorLabel.setText("No advertisement selected.");
             return;
         }
+        loadAdvertisement();
+    }
 
+    private void loadAdvertisement() {
         try {
             JsonNode ad = apiClient.getAdvertisementById(selectedAdvertisementId);
 
@@ -56,8 +82,27 @@ public class AdvertisementDetailsController {
             priceLabel.setText("Price: " + ad.path("price").asText(""));
             cityLabel.setText("City: " + ad.path("cityName").asText(""));
             categoryLabel.setText("Category: " + ad.path("categoryName").asText(""));
-            statusLabel.setText("Status: " + ad.path("status").asText(""));
-            ownerLabel.setText("Seller: " + ad.path("ownerUsername").asText(""));
+            String status = ad.path("status").asText("");
+            statusLabel.setText("Status: " + status);
+            String ownerUsername = ad.path("ownerUsername").asText("");
+            ownerLabel.setText("Seller: " + ownerUsername);
+
+            String buyerUsername = ad.hasNonNull("buyerUsername") ? ad.get("buyerUsername").asText() : null;
+            if (buyerUsername != null) {
+                buyerLabel.setText("Sold to: " + buyerUsername);
+                setVisible(buyerLabel, true);
+            } else {
+                setVisible(buyerLabel, false);
+            }
+
+            boolean loggedIn = SessionManager.getInstance().isLoggedIn();
+            boolean isOwner = loggedIn && ownerUsername.equals(SessionManager.getInstance().getUsername());
+            boolean isAdmin = SessionManager.getInstance().isAdmin();
+            
+            configureOwnerButtons(isOwner, status);
+            configureAdminButtons(isAdmin, status);
+
+            errorLabel.setText("");
         } catch (IOException e) {
             errorLabel.setText("Could not load advertisement: " + e.getMessage());
         } catch (InterruptedException e) {
@@ -65,6 +110,88 @@ public class AdvertisementDetailsController {
             errorLabel.setText("Loading advertisement was interrupted.");
         }
     }
+
+
+    private void configureOwnerButtons(boolean isOwner, String status) {
+        boolean editable = isOwner && EDITABLE_STATUSES.contains(status);
+        setVisible(editButton, editable);
+        setVisible(deleteButton, editable);
+        setVisible(markAsSoldButton, isOwner && "ACTIVE".equals(status));
+    }
+
+    private void configureAdminButtons(boolean isAdmin, String status) {
+        boolean pending = isAdmin && "PENDING_REVIEW".equals(status);
+        setVisible(approveButton, pending);
+        setVisible(rejectButton, pending);
+        // An admin may also delete an ad directly from here, on top of the
+        // owner's own delete button configured above.
+        if (isAdmin && EDITABLE_STATUSES.contains(status)) {
+            setVisible(deleteButton, true);
+        }
+    }
+
+    private void setVisible(javafx.scene.Node node, boolean visible) {
+        node.setVisible(visible);
+        node.setManaged(visible);
+    }
+
+    @FXML
+    private void handleDelete() {
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+                "Delete this advertisement? This cannot be undone.", ButtonType.YES, ButtonType.NO);
+        confirm.setHeaderText(null);
+        Optional<ButtonType> result = confirm.showAndWait();
+        if (result.isEmpty() || result.get() != ButtonType.YES) {
+            return;
+        }
+
+        try {
+            apiClient.deleteAdvertisement(selectedAdvertisementId);
+            handleBack();
+        } catch (IOException e) {
+            errorLabel.setText("Could not delete advertisement: " + e.getMessage());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            errorLabel.setText("The request was interrupted.");
+        }
+    }
+
+    @FXML
+    private void handleApprove() {
+        try {
+            apiClient.approveAdvertisement(selectedAdvertisementId);
+            loadAdvertisement();
+        } catch (IOException e) {
+            errorLabel.setText("Could not approve advertisement: " + e.getMessage());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            errorLabel.setText("The request was interrupted.");
+        }
+    }
+
+    @FXML
+    private void handleReject() {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Reject Advertisement");
+        dialog.setHeaderText("Why is this advertisement being rejected?");
+        dialog.setContentText("Reason:");
+
+        Optional<String> result = dialog.showAndWait();
+        if (result.isEmpty() || result.get().isBlank()) {
+            return;
+        }
+
+        try {
+            apiClient.rejectAdvertisement(selectedAdvertisementId, result.get().trim());
+            loadAdvertisement();
+        } catch (IOException e) {
+            errorLabel.setText("Could not reject advertisement: " + e.getMessage());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            errorLabel.setText("The request was interrupted.");
+        }
+    }
+
 
     @FXML
     private void handleBack() {
