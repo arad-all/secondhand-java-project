@@ -9,12 +9,12 @@
 <?import javafx.scene.layout.VBox?>
 
 <VBox spacing="10" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
-      fx:controller="frontend.controller.CreateAdvertisementController">
+      fx:controller="frontend.controller.EditAdvertisementController">
     <padding>
         <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
     </padding>
 
-    <Label style="-fx-font-size: 22px; -fx-font-weight: bold;" text="New Advertisement"/>
+    <Label style="-fx-font-size: 22px; -fx-font-weight: bold;" text="Edit Advertisement"/>
 
     <TextField fx:id="titleField" promptText="Title"/>
     <TextArea fx:id="descriptionField" prefRowCount="4" promptText="Description"/>
@@ -22,7 +22,7 @@
     <ComboBox fx:id="categoryComboBox" prefWidth="260" promptText="Category"/>
     <ComboBox fx:id="cityComboBox" prefWidth="260" promptText="City"/>
 
-    <Button onAction="#handleSubmit" text="Submit"/>
+    <Button onAction="#handleSave" text="Save Changes"/>
     <Button onAction="#handleCancel" text="Cancel"/>
 
     <Label fx:id="errorLabel" wrapText="true"/>

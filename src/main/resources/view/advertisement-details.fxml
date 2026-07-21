@@ -3,6 +3,7 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
 <VBox spacing="10" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
@@ -19,6 +20,21 @@
     <Label fx:id="categoryLabel"/>
     <Label fx:id="statusLabel"/>
     <Label fx:id="ownerLabel"/>
+    <Label fx:id="buyerLabel" managed="false" visible="false"/>
+
+    <HBox spacing="10">
+        <Button fx:id="favoriteButton" managed="false" onAction="#handleToggleFavorite" text="Add to Favorites"
+                visible="false"/>
+        <Button fx:id="editButton" managed="false" onAction="#handleEdit" text="Edit" visible="false"/>
+        <Button fx:id="markAsSoldButton" managed="false" onAction="#handleMarkAsSold" text="Mark as Sold"
+                visible="false"/>
+        <Button fx:id="deleteButton" managed="false" onAction="#handleDelete" text="Delete" visible="false"/>
+    </HBox>
+
+    <HBox spacing="10">
+        <Button fx:id="approveButton" managed="false" onAction="#handleApprove" text="Approve" visible="false"/>
+        <Button fx:id="rejectButton" managed="false" onAction="#handleReject" text="Reject" visible="false"/>
+    </HBox>
 
     <Button onAction="#handleBack" text="Back to list"/>
 
