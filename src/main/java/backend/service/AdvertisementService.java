@@ -318,9 +318,9 @@ public class AdvertisementService {
     /**
      * Edits an advertisement's title/description/price/category/city.
      * Owner or admin only ({@link ForbiddenActionException} otherwise),
-     * and only from {@link #DELETABLE_STATUSES}
-     * ({@link InvalidStateTransitionException} otherwise). Partial
-     * update: only non-null fields in {@code request} are applied.
+     * and only while the advertisement is {@link AdvertisementStatus#ACTIVE}
+     * ({@link InvalidStateTransitionException} otherwise). Partial update:
+     * only non-null fields in {@code request} are applied.
      */
     @Transactional
     public AdvertisementDetailResponse editAdvertisement(Long adId,
@@ -334,7 +334,7 @@ public class AdvertisementService {
         if (!isOwner && !isAdmin) {
             throw new ForbiddenActionException("Only the ad's owner or an admin can edit this advertisement.");
         }
-        if (!DELETABLE_STATUSES.contains(ad.getStatus())) {
+        if (ad.getStatus() != AdvertisementStatus.ACTIVE) {
             throw new InvalidStateTransitionException(
                     "Cannot edit advertisement from status " + ad.getStatus() + ".");
         }
@@ -376,10 +376,9 @@ public class AdvertisementService {
      * {@link #editAdvertisement} / {@link #deleteAdvertisement}, an admin
      * cannot add images to someone else's ad — there's no legitimate
      * reason for an admin to be supplying photos of another user's item),
-     * and only while the ad is in one of {@link #DELETABLE_STATUSES} — the
-     * same "still editable" set {@link #editAdvertisement} enforces, since
+     * and only while the ad is in one of {@link #DELETABLE_STATUSES};
      * adding photos to an already-{@code SOLD}/{@code DELETED} listing
-     * makes no more sense than editing its title would.
+     * makes no sense.
      * <p>
      * Files are validated and written to disk one at a time via
      * {@link FileStorageService#store}; if any file in the batch fails
