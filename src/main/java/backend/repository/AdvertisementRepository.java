@@ -66,7 +66,7 @@ public interface AdvertisementRepository extends JpaRepository<Advertisement, Lo
     @Query("""
             SELECT a FROM Advertisement a
             WHERE a.status = :status
-              AND (:categoryId IS NULL OR a.category.id = :categoryId)
+              AND (:categoryIds IS NULL OR a.category.id IN :categoryIds)
               AND (:cityId IS NULL OR a.city.id = :cityId)
               AND (:minPrice IS NULL OR a.price >= :minPrice)
               AND (:maxPrice IS NULL OR a.price <= :maxPrice)
@@ -75,7 +75,7 @@ public interface AdvertisementRepository extends JpaRepository<Advertisement, Lo
                    OR LOWER(a.description) LIKE LOWER(:pattern))
             """)
     Page<Advertisement> searchInternal(@Param("status") AdvertisementStatus status,
-                                        @Param("categoryId") Long categoryId,
+                                       @Param("categoryIds") List<Long> categoryIds,
                                         @Param("cityId") Long cityId,
                                         @Param("minPrice") BigDecimal minPrice,
                                         @Param("maxPrice") BigDecimal maxPrice,
@@ -92,7 +92,7 @@ public interface AdvertisementRepository extends JpaRepository<Advertisement, Lo
      * description.
      */
     default Page<Advertisement> search(AdvertisementStatus status,
-                                        Long categoryId,
+                                       List<Long> categoryIds,
                                         Long cityId,
                                         BigDecimal minPrice,
                                         BigDecimal maxPrice,
@@ -103,6 +103,6 @@ public interface AdvertisementRepository extends JpaRepository<Advertisement, Lo
                     "(e.g. ACTIVE for public search) so non-public ads can't leak into results");
         }
         String pattern = (keyword == null || keyword.isBlank()) ? null : "%" + keyword.trim() + "%";
-        return searchInternal(status, categoryId, cityId, minPrice, maxPrice, pattern, pageable);
+        return searchInternal(status, categoryIds, cityId, minPrice, maxPrice, pattern, pageable);
     }
 }
