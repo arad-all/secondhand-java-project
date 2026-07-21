@@ -9,6 +9,8 @@ import jakarta.validation.Valid;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.MediaTypeFactory;
@@ -59,7 +61,8 @@ public class AdvertisementController {
      * itself instead of {@code .getContent()}.
      */
     @GetMapping
-    public List<AdvertisementSummaryResponse> getActiveAdvertisements(Pageable pageable) {
+    public List<AdvertisementSummaryResponse> getActiveAdvertisements(
+            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return advertisementService.getActiveAdvertisements(pageable).getContent();
     }
 
@@ -82,7 +85,7 @@ public class AdvertisementController {
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false, defaultValue = "ACTIVE") AdvertisementStatus status,
             @AuthenticationPrincipal AuthenticatedUser user,
-            Pageable pageable) {
+            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         boolean isAdmin = (user != null) && Role.ADMIN.name().equals(user.role());
         return advertisementService.search(keyword, categoryId, cityId, minPrice, maxPrice, status, isAdmin, pageable);
     }
@@ -97,7 +100,7 @@ public class AdvertisementController {
     public Page<AdvertisementSummaryResponse> getMyAdvertisements(
             @AuthenticationPrincipal AuthenticatedUser user,
             @RequestParam(required = false) AdvertisementStatus status,
-            Pageable pageable) {
+            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return advertisementService.getMyAdvertisements(user.userId(), status, pageable);
     }
 
