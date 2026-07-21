@@ -2,32 +2,55 @@ package frontend.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * All HTTP communication with the backend lives here. Controllers should
  * never talk to the network directly — they call methods on this class
  * and work with the returned JsonNode.
+ * <p>
+ * The JWT (if the user is logged in) is attached automatically to every
+ * request via {@link SessionManager}. This is harmless for the backend's
+ * public endpoints and required for its protected ones, so there's no
+ * need for callers to say which is which.
  */
 public class ApiClient {
 
     private static final String BASE_URL = "http://localhost:8080";
 
+    /**
+     * Used on list endpoints to request enough results in one page for
+     * this project's simple, non-paginated list views. The backend still
+     * returns a proper Spring Data {@code Page}; we just ask for a big
+     * enough single page instead of teaching the UI to page through it.
+     */
+    private static final String PAGE_SIZE_PARAM = "size=100";
+
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    // ------------------------------------------------------------------
+    // Auth
+    // ------------------------------------------------------------------
 
     public JsonNode login(String username, String password) throws IOException, InterruptedException {
         ObjectNode body = objectMapper.createObjectNode();
         body.put("username", username);
         body.put("password", password);
-        return sendJsonRequest("POST", "/api/auth/login", body.toString(), false);
+        return sendJsonRequest("POST", "/api/auth/login", body.toString());
     }
 
     public JsonNode register(String fullName, String username, String password, String phoneNumber, String email) throws IOException, InterruptedException {
@@ -37,15 +60,62 @@ public class ApiClient {
         body.put("password", password);
         body.put("phoneNumber", phoneNumber);
         body.put("email", email);
-        return sendJsonRequest("POST", "/api/auth/register", body.toString(), false);
+        return sendJsonRequest("POST", "/api/auth/register", body.toString());
     }
 
+    // ------------------------------------------------------------------
+    // Advertisements
+    // ------------------------------------------------------------------
+
+    /** Plain public listing (GET /api/advertisements) — every ACTIVE ad, unfiltered. */
     public JsonNode getAdvertisements() throws IOException, InterruptedException {
-        return sendJsonRequest("GET", "/api/advertisements", null, false);
+        return sendJsonRequest("GET", "/api/advertisements?" + PAGE_SIZE_PARAM, null);
+    }
+
+    /**
+     * Keyword/filter search (GET /api/advertisements/search). Any parameter
+     * can be null/blank to skip that filter. Returns a Spring Data Page —
+     * callers should read the "content" field for the list of results.
+     *
+     * @param sortField backend field name to sort by, e.g. "createdAt" or "price", or null for default order
+     * @param sortDir   "asc" or "desc"; ignored if sortField is null
+     */
+    public JsonNode searchAdvertisements(String keyword, Long categoryId, Long cityId,
+                                         BigDecimal minPrice, BigDecimal maxPrice,
+                                         String sortField, String sortDir) throws IOException, InterruptedException {
+        Map<String, String> params = new LinkedHashMap<>();
+        if (keyword != null && !keyword.isBlank()) {
+            params.put("keyword", keyword.trim());
+        }
+        if (categoryId != null) {
+            params.put("categoryId", String.valueOf(categoryId));
+        }
+        if (cityId != null) {
+            params.put("cityId", String.valueOf(cityId));
+        }
+        if (minPrice != null) {
+            params.put("minPrice", minPrice.toPlainString());
+        }
+        if (maxPrice != null) {
+            params.put("maxPrice", maxPrice.toPlainString());
+        }
+        if (sortField != null && !sortField.isBlank()) {
+            params.put("sort", sortField + "," + (sortDir == null ? "asc" : sortDir));
+        }
+
+        String query = buildQuery(params);
+        String separator = query.isEmpty() ? "?" : "&";
+        return sendJsonRequest("GET", "/api/advertisements/search" + query + separator + PAGE_SIZE_PARAM, null);
+    }
+
+    /** The logged-in caller's own advertisements, in any (or one specific) status. Returns a Page. */
+    public JsonNode getMyAdvertisements(String statusFilter) throws IOException, InterruptedException {
+        String query = (statusFilter == null || statusFilter.isBlank()) ? "" : "&status=" + statusFilter;
+        return sendJsonRequest("GET", "/api/advertisements/my?" + PAGE_SIZE_PARAM + query, null);
     }
 
     public JsonNode getAdvertisementById(Long id) throws IOException, InterruptedException {
-        return sendJsonRequest("GET", "/api/advertisements/" + id, null, false);
+        return sendJsonRequest("GET", "/api/advertisements/" + id, null);
     }
 
     public JsonNode createAdvertisement(String title, String description, BigDecimal price, Long categoryId, Long cityId) throws IOException, InterruptedException {
@@ -55,27 +125,182 @@ public class ApiClient {
         body.put("price", price);
         body.put("categoryId", categoryId);
         body.put("cityId", cityId);
-        return sendJsonRequest("POST", "/api/advertisements", body.toString(), true);
+        return sendJsonRequest("POST", "/api/advertisements", body.toString());
     }
 
     /**
-     * Sends a JSON request and returns the parsed response body.
-     *
-     * @param includeAuth whether to attach the current session's JWT
-     *                    (as "Authorization: Bearer ...") if one exists.
+     * Partial update (PATCH /api/advertisements/{id}). Only non-null
+     * arguments are sent, matching the backend's partial-update contract.
      */
-    private JsonNode sendJsonRequest(String method, String path, String jsonBody, boolean includeAuth)
+    public JsonNode editAdvertisement(Long id, String title, String description, BigDecimal price,
+                                      Long categoryId, Long cityId) throws IOException, InterruptedException {
+        ObjectNode body = objectMapper.createObjectNode();
+        if (title != null) {
+            body.put("title", title);
+        }
+        if (description != null) {
+            body.put("description", description);
+        }
+        if (price != null) {
+            body.put("price", price);
+        }
+        if (categoryId != null) {
+            body.put("categoryId", categoryId);
+        }
+        if (cityId != null) {
+            body.put("cityId", cityId);
+        }
+        return sendJsonRequest("PATCH", "/api/advertisements/" + id, body.toString());
+    }
+
+    /** Marks the caller's own ACTIVE advertisement as SOLD, recording who bought it. */
+    public JsonNode markAsSold(Long id, Long buyerId) throws IOException, InterruptedException {
+        ObjectNode body = objectMapper.createObjectNode();
+        body.put("buyerId", buyerId);
+        return sendJsonRequest("PATCH", "/api/advertisements/" + id + "/sold", body.toString());
+    }
+
+    /** Soft-deletes an advertisement. Owner or admin only (enforced by the backend). */
+    public void deleteAdvertisement(Long id) throws IOException, InterruptedException {
+        sendJsonRequest("DELETE", "/api/advertisements/" + id, null);
+    }
+
+    // ------------------------------------------------------------------
+    // Categories / cities (reference data, used to populate ComboBoxes)
+    // ------------------------------------------------------------------
+
+    public JsonNode getTopLevelCategories() throws IOException, InterruptedException {
+        return sendJsonRequest("GET", "/api/categories", null);
+    }
+
+    public JsonNode getCategoryChildren(Long categoryId) throws IOException, InterruptedException {
+        return sendJsonRequest("GET", "/api/categories/" + categoryId + "/children", null);
+    }
+
+    /**
+     * Every category, top-level entries followed by their children,
+     * flattened into one array (each element still has its own
+     * {@code parentId}, so the UI can indent children under their
+     * parent). Two calls per top-level category — fine at this project's
+     * scale, and keeps the UI code from needing to know about the
+     * top-level/children split.
+     */
+    public JsonNode getCategoriesFlattened() throws IOException, InterruptedException {
+        ArrayNode all = objectMapper.createArrayNode();
+        JsonNode topLevel = getTopLevelCategories();
+        for (JsonNode category : topLevel) {
+            all.add(category);
+            JsonNode children = getCategoryChildren(category.get("id").asLong());
+            for (JsonNode child : children) {
+                all.add(child);
+            }
+        }
+        return all;
+    }
+
+    /** Admin-only (POST /api/categories). Pass parentId=null for a top-level category. */
+    public JsonNode createCategory(String name, Long parentId) throws IOException, InterruptedException {
+        ObjectNode body = objectMapper.createObjectNode();
+        body.put("name", name);
+        if (parentId != null) {
+            body.put("parentId", parentId);
+        }
+        return sendJsonRequest("POST", "/api/categories", body.toString());
+    }
+
+    public JsonNode getCities() throws IOException, InterruptedException {
+        return sendJsonRequest("GET", "/api/cities", null);
+    }
+
+    /** Admin-only (POST /api/cities). Province is optional. */
+    public JsonNode createCity(String name, String province) throws IOException, InterruptedException {
+        ObjectNode body = objectMapper.createObjectNode();
+        body.put("name", name);
+        if (province != null && !province.isBlank()) {
+            body.put("province", province);
+        }
+        return sendJsonRequest("POST", "/api/cities", body.toString());
+    }
+
+    // ------------------------------------------------------------------
+    // Favorites
+    // ------------------------------------------------------------------
+
+    public JsonNode getFavorites() throws IOException, InterruptedException {
+        return sendJsonRequest("GET", "/api/favorites", null);
+    }
+
+    public JsonNode addFavorite(Long advertisementId) throws IOException, InterruptedException {
+        return sendJsonRequest("POST", "/api/favorites/" + advertisementId, "");
+    }
+
+    public void removeFavorite(Long advertisementId) throws IOException, InterruptedException {
+        sendJsonRequest("DELETE", "/api/favorites/" + advertisementId, null);
+    }
+
+    // ------------------------------------------------------------------
+    // Admin: advertisement moderation + user moderation
+    // ------------------------------------------------------------------
+
+    public JsonNode listPendingAdvertisements() throws IOException, InterruptedException {
+        return sendJsonRequest("GET", "/api/admin/advertisements/pending?" + PAGE_SIZE_PARAM, null);
+    }
+
+    public JsonNode approveAdvertisement(Long id) throws IOException, InterruptedException {
+        return sendJsonRequest("PATCH", "/api/admin/advertisements/" + id + "/approve", "");
+    }
+
+    public JsonNode rejectAdvertisement(Long id, String reason) throws IOException, InterruptedException {
+        ObjectNode body = objectMapper.createObjectNode();
+        body.put("reason", reason);
+        return sendJsonRequest("PATCH", "/api/admin/advertisements/" + id + "/reject", body.toString());
+    }
+
+    public JsonNode listUsers(String statusFilter) throws IOException, InterruptedException {
+        String query = (statusFilter == null || statusFilter.isBlank()) ? "" : "?status=" + statusFilter;
+        return sendJsonRequest("GET", "/api/admin/users" + query, null);
+    }
+
+    public JsonNode blockUser(Long id) throws IOException, InterruptedException {
+        return sendJsonRequest("PATCH", "/api/admin/users/" + id + "/block", "");
+    }
+
+    public JsonNode unblockUser(Long id) throws IOException, InterruptedException {
+        return sendJsonRequest("PATCH", "/api/admin/users/" + id + "/unblock", "");
+    }
+
+    // ------------------------------------------------------------------
+    // Internals
+    // ------------------------------------------------------------------
+
+    private String buildQuery(Map<String, String> params) {
+        if (params.isEmpty()) {
+            return "";
+        }
+        return params.entrySet().stream()
+                .map(entry -> encode(entry.getKey()) + "=" + encode(entry.getValue()))
+                .collect(Collectors.joining("&", "?", ""));
+    }
+
+    private String encode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Sends a JSON request and returns the parsed response body. Attaches
+     * the current session's JWT (if any) as "Authorization: Bearer ..." —
+     * harmless on public endpoints, required on protected ones.
+     */
+    private JsonNode sendJsonRequest(String method, String path, String jsonBody)
             throws IOException, InterruptedException {
 
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL + path))
                 .header("Content-Type", "application/json");
 
-        if (includeAuth) {
-            String token = SessionManager.getInstance().getToken();
-            if (token != null && !token.isBlank()) {
-                requestBuilder.header("Authorization", "Bearer " + token);
-            }
+        String token = SessionManager.getInstance().getToken();
+        if (token != null && !token.isBlank()) {
+            requestBuilder.header("Authorization", "Bearer " + token);
         }
 
         HttpRequest.BodyPublisher bodyPublisher = (jsonBody == null)
