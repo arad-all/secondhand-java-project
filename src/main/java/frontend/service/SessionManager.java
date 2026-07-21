@@ -39,6 +39,10 @@ public class SessionManager {
         return token != null;
     }
 
+    public boolean isAdmin() {
+        return "ADMIN".equals(role);
+    }
+
     public String getToken() {
         return token;
     }
