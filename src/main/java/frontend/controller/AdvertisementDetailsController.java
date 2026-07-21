@@ -59,6 +59,7 @@ public class AdvertisementDetailsController {
     private Label errorLabel;
 
     private final ApiClient apiClient = new ApiClient();
+    private boolean isFavorite;
 
     public static void setSelectedAdvertisementId(Long id) {
         selectedAdvertisementId = id;
@@ -98,7 +99,8 @@ public class AdvertisementDetailsController {
             boolean loggedIn = SessionManager.getInstance().isLoggedIn();
             boolean isOwner = loggedIn && ownerUsername.equals(SessionManager.getInstance().getUsername());
             boolean isAdmin = SessionManager.getInstance().isAdmin();
-            
+
+            configureFavoriteButton(loggedIn);
             configureOwnerButtons(isOwner, status);
             configureAdminButtons(isAdmin, status);
 
@@ -111,6 +113,30 @@ public class AdvertisementDetailsController {
         }
     }
 
+    private void configureFavoriteButton(boolean loggedIn) {
+        if (!loggedIn) {
+            setVisible(favoriteButton, false);
+            return;
+        }
+
+        try {
+            isFavorite = false;
+            for (JsonNode favorite : apiClient.getFavorites()) {
+                if (favorite.path("advertisement").path("id").asLong() == selectedAdvertisementId) {
+                    isFavorite = true;
+                    break;
+                }
+            }
+            favoriteButton.setText(isFavorite ? "Remove from Favorites" : "Add to Favorites");
+            setVisible(favoriteButton, true);
+        } catch (IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            // Non-fatal: just hide the button rather than blocking the whole page.
+            setVisible(favoriteButton, false);
+        }
+    }
 
     private void configureOwnerButtons(boolean isOwner, String status) {
         boolean editable = isOwner && EDITABLE_STATUSES.contains(status);
@@ -133,6 +159,25 @@ public class AdvertisementDetailsController {
     private void setVisible(javafx.scene.Node node, boolean visible) {
         node.setVisible(visible);
         node.setManaged(visible);
+    }
+
+    @FXML
+    private void handleToggleFavorite() {
+        try {
+            if (isFavorite) {
+                apiClient.removeFavorite(selectedAdvertisementId);
+            } else {
+                apiClient.addFavorite(selectedAdvertisementId);
+            }
+            isFavorite = !isFavorite;
+            favoriteButton.setText(isFavorite ? "Remove from Favorites" : "Add to Favorites");
+            errorLabel.setText("");
+        } catch (IOException e) {
+            errorLabel.setText("Could not update favorites: " + e.getMessage());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            errorLabel.setText("Updating favorites was interrupted.");
+        }
     }
 
     @FXML
