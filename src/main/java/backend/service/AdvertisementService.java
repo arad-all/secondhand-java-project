@@ -59,6 +59,9 @@ public class AdvertisementService {
     private static final Set<AdvertisementStatus> DELETABLE_STATUSES =
             Set.of(AdvertisementStatus.ACTIVE, AdvertisementStatus.PENDING_REVIEW, AdvertisementStatus.REJECTED);
 
+    /** Upper bound on images per advertisement, to keep uploads bounded. */
+    private static final int MAX_IMAGES_PER_ADVERTISEMENT = 8;
+
     private final AdvertisementRepository advertisementRepository;
     private final CategoryRepository categoryRepository;
     private final CityRepository cityRepository;
