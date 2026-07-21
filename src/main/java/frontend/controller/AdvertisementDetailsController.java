@@ -181,6 +181,42 @@ public class AdvertisementDetailsController {
     }
 
     @FXML
+    private void handleEdit() {
+        EditAdvertisementController.setAdvertisementIdToEdit(selectedAdvertisementId);
+        try {
+            Main.switchScene("/view/edit-advertisement.fxml");
+        } catch (IOException e) {
+            errorLabel.setText("Could not open the edit page.");
+        }
+    }
+
+    @FXML
+    private void handleMarkAsSold() {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Mark as Sold");
+        dialog.setHeaderText("Enter the buyer's user id.");
+        dialog.setContentText("Buyer user id:");
+
+        Optional<String> result = dialog.showAndWait();
+        if (result.isEmpty() || result.get().isBlank()) {
+            return;
+        }
+
+        try {
+            Long buyerId = Long.parseLong(result.get().trim());
+            apiClient.markAsSold(selectedAdvertisementId, buyerId);
+            loadAdvertisement();
+        } catch (NumberFormatException e) {
+            errorLabel.setText("Buyer user id must be a whole number.");
+        } catch (IOException e) {
+            errorLabel.setText("Could not mark as sold: " + e.getMessage());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            errorLabel.setText("The request was interrupted.");
+        }
+    }
+
+    @FXML
     private void handleDelete() {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
                 "Delete this advertisement? This cannot be undone.", ButtonType.YES, ButtonType.NO);
@@ -236,7 +272,6 @@ public class AdvertisementDetailsController {
             errorLabel.setText("The request was interrupted.");
         }
     }
-
 
     @FXML
     private void handleBack() {
