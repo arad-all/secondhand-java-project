@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Data access for {@link ChatMessage}. Note: {@link #markConversationAsRead}
@@ -23,6 +24,10 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
      */
     @EntityGraph(attributePaths = "sender")
     List<ChatMessage> findByConversationIdOrderBySentAtAsc(Long conversationId);
+
+    /** The most recent message in a conversation, for previewing it in an inbox list. */
+    @EntityGraph(attributePaths = "sender")
+    Optional<ChatMessage> findTopByConversationIdOrderBySentAtDesc(Long conversationId);
 
     /** Unread messages in a conversation that were not sent by the reader. */
     long countByConversationIdAndReadFalseAndSenderIdNot(Long conversationId, Long readerId);
