@@ -199,36 +199,9 @@ public class AdvertisementListController {
         handleSearch();
     }
 
-    private void loadAdvertisements() {
-        try {
-            JsonNode advertisements = apiClient.getAdvertisements();
-            ObservableList<String> rows = FXCollections.observableArrayList();
-            displayedAdIds.clear();
-
-            for (JsonNode ad : advertisements) {
-                displayedAdIds.add(ad.path("id").asLong());
-
-                String title = ad.path("title").asText("");
-                String price = ad.path("price").asText("");
-                String city = ad.path("cityName").asText("");
-                String status = ad.path("status").asText("");
-
-                rows.add(title + "   |   " + price + "   |   " + city + "   |   " + status);
-            }
-
-            advertisementListView.setItems(rows);
-            errorLabel.setText("");
-        } catch (IOException e) {
-            errorLabel.setText("Could not load advertisements: " + e.getMessage());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            errorLabel.setText("Loading advertisements was interrupted.");
-        }
-    }
-
     @FXML
     private void handleRefresh() {
-        loadAdvertisements();
+        handleSearch();
     }
 
     private void handleViewSelected() {
@@ -253,6 +226,33 @@ public class AdvertisementListController {
             Main.switchScene("/view/create-advertisement.fxml");
         } catch (IOException e) {
             errorLabel.setText("Could not open the create advertisement page.");
+        }
+    }
+
+    @FXML
+    private void handleGoToMyAdvertisements() {
+        try {
+            Main.switchScene("/view/my-advertisements.fxml");
+        } catch (IOException e) {
+            errorLabel.setText("Could not open your advertisements.");
+        }
+    }
+
+    @FXML
+    private void handleGoToFavorites() {
+        try {
+            Main.switchScene("/view/favorites.fxml");
+        } catch (IOException e) {
+            errorLabel.setText("Could not open favorites.");
+        }
+    }
+
+    @FXML
+    private void handleGoToAdminPanel() {
+        try {
+            Main.switchScene("/view/admin-panel.fxml");
+        } catch (IOException e) {
+            errorLabel.setText("Could not open the admin panel.");
         }
     }
 
