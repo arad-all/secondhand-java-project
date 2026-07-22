@@ -289,6 +289,11 @@ public class ApiClient {
         return sendJsonRequest("GET", "/api/conversations", null);
     }
 
+    /** One conversation's full message thread, oldest first. Also marks the other party's messages as read. */
+    public JsonNode getConversation(Long conversationId) throws IOException, InterruptedException {
+        return sendJsonRequest("GET", "/api/conversations/" + conversationId, null);
+    }
+
     // ------------------------------------------------------------------
     // Admin: advertisement moderation + user moderation
     // ------------------------------------------------------------------
