@@ -25,6 +25,7 @@
                     <Button onAction="#handleGoToMyAdvertisements" text="My Advertisements"/>
                     <Button onAction="#handleGoToFavorites" text="Favorites"/>
                     <Button onAction="#handleGoToPurchaseHistory" text="Purchase History"/>
+                    <Button onAction="#handleGoToMessages" text="Messages"/>
                     <Button fx:id="adminPanelButton" onAction="#handleGoToAdminPanel" text="Admin Panel"/>
                     <Button onAction="#handleCreateNew" text="New Advertisement"/>
                     <Button onAction="#handleLogout" text="Logout"/>
