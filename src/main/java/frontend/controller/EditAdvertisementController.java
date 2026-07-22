@@ -41,6 +41,7 @@ public class EditAdvertisementController {
 
     private final ApiClient apiClient = new ApiClient();
     private final List<Long> categoryIds = new ArrayList<>();
+    private final List<String> categoryPlainNames = new ArrayList<>();
     private final List<Long> cityIds = new ArrayList<>();
 
     public static void setAdvertisementIdToEdit(Long id) {
@@ -58,9 +59,11 @@ public class EditAdvertisementController {
         ObservableList<String> options = FXCollections.observableArrayList();
         try {
             for (JsonNode category : apiClient.getCategoriesFlattened()) {
-                boolean isSubcategory = category.hasNonNull("parentId");
-                options.add((isSubcategory ? "\u2014 " : "") + category.path("name").asText(""));
+                int depth = category.path("depth").asInt(0);
+                String name = category.path("name").asText("");
+                options.add(categoryDisplayName(name, depth));
                 categoryIds.add(category.path("id").asLong());
+                categoryPlainNames.add(name);
             }
         } catch (IOException | InterruptedException e) {
             if (e instanceof InterruptedException) {
@@ -69,6 +72,11 @@ public class EditAdvertisementController {
             errorLabel.setText("Could not load categories: " + e.getMessage());
         }
         categoryComboBox.setItems(options);
+    }
+
+    /** Indents a category name by its depth in the tree (0 = top-level), to any depth — no artificial limit. */
+    private String categoryDisplayName(String name, int depth) {
+        return "  ".repeat(depth) + (depth > 0 ? "\u2014 " : "") + name;
     }
 
     private void loadCityOptions() {
@@ -99,7 +107,7 @@ public class EditAdvertisementController {
             descriptionField.setText(ad.path("description").asText(""));
             priceField.setText(ad.path("price").asText(""));
 
-            selectByName(categoryComboBox, ad.path("categoryName").asText(""));
+            selectCategoryByName(ad.path("categoryName").asText(""));
             selectByName(cityComboBox, ad.path("cityName").asText(""));
         } catch (IOException e) {
             errorLabel.setText("Could not load advertisement: " + e.getMessage());
@@ -109,10 +117,23 @@ public class EditAdvertisementController {
         }
     }
 
-    /** Selects the combo box entry whose visible text ends with the given name (handles the "— " subcategory prefix). */
+    /**
+     * Selects the category combo box entry with this exact (plain, unindented)
+     * name, looked up via the parallel {@link #categoryPlainNames} list rather
+     * than pattern-matching the indented display text — works no matter how
+     * deep the category is nested.
+     */
+    private void selectCategoryByName(String name) {
+        int index = categoryPlainNames.indexOf(name);
+        if (index >= 0 && index < categoryComboBox.getItems().size()) {
+            categoryComboBox.getSelectionModel().select(index);
+        }
+    }
+
+    /** Selects the combo box entry with exactly this visible text — used for city, which isn't indented. */
     private void selectByName(ComboBox<String> comboBox, String name) {
         for (String item : comboBox.getItems()) {
-            if (item.equals(name) || item.equals("\u2014 " + name)) {
+            if (item.equals(name)) {
                 comboBox.getSelectionModel().select(item);
                 return;
             }

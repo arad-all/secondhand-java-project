@@ -50,8 +50,8 @@ public class CreateAdvertisementController {
         ObservableList<String> options = FXCollections.observableArrayList();
         try {
             for (JsonNode category : apiClient.getCategoriesFlattened()) {
-                boolean isSubcategory = category.hasNonNull("parentId");
-                options.add((isSubcategory ? "\u2014 " : "") + category.path("name").asText(""));
+                int depth = category.path("depth").asInt(0);
+                options.add(categoryDisplayName(category.path("name").asText(""), depth));
                 categoryIds.add(category.path("id").asLong());
             }
         } catch (IOException | InterruptedException e) {
@@ -61,6 +61,11 @@ public class CreateAdvertisementController {
             showError("Could not load categories: " + e.getMessage());
         }
         categoryComboBox.setItems(options);
+    }
+
+    /** Indents a category name by its depth in the tree (0 = top-level), to any depth — no artificial limit. */
+    private String categoryDisplayName(String name, int depth) {
+        return "  ".repeat(depth) + (depth > 0 ? "\u2014 " : "") + name;
     }
 
     private void loadCityOptions() {

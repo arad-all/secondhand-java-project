@@ -27,6 +27,8 @@
         <Label fx:id="sellerRatingLabel" managed="false" visible="false"/>
         <Button fx:id="viewSellerProfileButton" managed="false" onAction="#handleViewSellerProfile"
                 text="View Seller Profile" visible="false"/>
+        <Button fx:id="messageSellerButton" managed="false" onAction="#handleMessageSeller" text="Message Seller"
+                visible="false"/>
     </HBox>
 
     <HBox spacing="10">
@@ -36,6 +38,8 @@
         <Button fx:id="markAsSoldButton" managed="false" onAction="#handleMarkAsSold" text="Mark as Sold"
                 visible="false"/>
         <Button fx:id="deleteButton" managed="false" onAction="#handleDelete" text="Delete" visible="false"/>
+        <Button fx:id="rateSellerButton" managed="false" onAction="#handleRateSeller" text="Rate Seller"
+                visible="false"/>
     </HBox>
 
     <HBox spacing="10">

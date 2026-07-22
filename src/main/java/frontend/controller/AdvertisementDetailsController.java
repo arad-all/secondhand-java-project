@@ -4,12 +4,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 import frontend.Main;
 import frontend.service.ApiClient;
 import frontend.service.SessionManager;
+import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.layout.GridPane;
+import javafx.util.Pair;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -59,6 +66,10 @@ public class AdvertisementDetailsController {
     @FXML
     private Button viewSellerProfileButton;
     @FXML
+    private Button messageSellerButton;
+    @FXML
+    private Button rateSellerButton;
+    @FXML
     private Button favoriteButton;
     @FXML
     private Button editButton;
@@ -76,6 +87,9 @@ public class AdvertisementDetailsController {
     private final ApiClient apiClient = new ApiClient();
     private boolean isFavorite;
     private String ownerUsername;
+    private String buyerUsername;
+    private boolean alreadyRatedByCurrentUser;
+    private Long existingConversationId;
 
     public static void setSelectedAdvertisementId(Long id) {
         selectedAdvertisementId = id;
@@ -105,6 +119,7 @@ public class AdvertisementDetailsController {
             ownerLabel.setText("Seller: " + ownerUsername);
 
             String buyerUsername = ad.hasNonNull("buyerUsername") ? ad.get("buyerUsername").asText() : null;
+            this.buyerUsername = buyerUsername;
             if (buyerUsername != null) {
                 buyerLabel.setText("Sold to: " + buyerUsername);
                 setVisible(buyerLabel, true);
@@ -129,7 +144,9 @@ public class AdvertisementDetailsController {
             configureFavoriteButton(loggedIn);
             configureOwnerButtons(isOwner, status);
             configureAdminButtons(isAdmin, status);
+            configureMessagingButton(loggedIn, isOwner);
             loadSellerRatingSummary(ownerUsername);
+            configureRateSellerButton(loggedIn, status);
 
             errorLabel.setText("");
         } catch (IOException e) {
@@ -147,8 +164,15 @@ public class AdvertisementDetailsController {
      * see {@link #handleViewSellerProfile}). Resolves the seller's
      * numeric id from their username first, since that's all an
      * {@code AdvertisementDetailResponse} carries.
+     * <p>
+     * Also determines {@link #alreadyRatedByCurrentUser} from the same
+     * response — {@code RatingResponse} already carries the
+     * advertisementId and buyerUsername of every rating, so no extra
+     * call is needed to check whether the buyer already rated this
+     * specific purchase (used by {@link #configureRateSellerButton}).
      */
     private void loadSellerRatingSummary(String ownerUsername) {
+        alreadyRatedByCurrentUser = false;
         try {
             JsonNode seller = apiClient.getUserByUsername(ownerUsername);
             Long sellerId = seller.path("id").asLong();
@@ -162,6 +186,17 @@ public class AdvertisementDetailsController {
                     : String.format("Seller rating: %.1f / 5 (%d rating%s)", average, total, total == 1 ? "" : "s"));
             setVisible(sellerRatingLabel, true);
             setVisible(viewSellerProfileButton, true);
+
+            String myUsername = SessionManager.getInstance().getUsername();
+            if (myUsername != null) {
+                for (JsonNode rating : ratings.path("ratings")) {
+                    if (rating.path("advertisementId").asLong() == selectedAdvertisementId
+                            && myUsername.equals(rating.path("buyerUsername").asText())) {
+                        alreadyRatedByCurrentUser = true;
+                        break;
+                    }
+                }
+            }
         } catch (IOException | InterruptedException e) {
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
@@ -170,6 +205,19 @@ public class AdvertisementDetailsController {
             setVisible(sellerRatingLabel, false);
             setVisible(viewSellerProfileButton, false);
         }
+    }
+
+    /**
+     * The buyer of a SOLD ad may rate its seller exactly once — visible
+     * only for that buyer, only once SOLD, and only if
+     * {@link #loadSellerRatingSummary} didn't already find an existing
+     * rating from them for this ad. Moved here from the purchase-history
+     * page so there's a single place to rate a seller.
+     */
+    private void configureRateSellerButton(boolean loggedIn, String status) {
+        boolean isBuyer = loggedIn && buyerUsername != null
+                && buyerUsername.equals(SessionManager.getInstance().getUsername());
+        setVisible(rateSellerButton, isBuyer && "SOLD".equals(status) && !alreadyRatedByCurrentUser);
     }
 
     private void configureFavoriteButton(boolean loggedIn) {
@@ -214,6 +262,43 @@ public class AdvertisementDetailsController {
         if (isAdmin && DELETABLE_STATUSES.contains(status)) {
             setVisible(deleteButton, true);
         }
+    }
+
+    /**
+     * Per the spec's "start a conversation with the seller" scenario,
+     * this lives right here on the ad details page. Looks through the
+     * caller's own conversations (GET /api/conversations) for one already
+     * about this ad — if found, the button just opens it (no duplicate
+     * conversation is ever created, since ChatService#messageSeller reuses
+     * the existing one anyway; checking here up front just avoids
+     * re-prompting for a message when there's already a thread to open).
+     * Hidden entirely for the ad's own owner, same restriction
+     * ChatService#messageSeller enforces server-side.
+     */
+    private void configureMessagingButton(boolean loggedIn, boolean isOwner) {
+        existingConversationId = null;
+        if (!loggedIn || isOwner) {
+            setVisible(messageSellerButton, false);
+            return;
+        }
+
+        try {
+            for (JsonNode conversation : apiClient.getMyConversations()) {
+                if (conversation.path("advertisementId").asLong() == selectedAdvertisementId) {
+                    existingConversationId = conversation.path("id").asLong();
+                    break;
+                }
+            }
+        } catch (IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            // Non-fatal: worst case the button just offers to start a new
+            // message instead of jumping straight to an existing thread.
+        }
+
+        messageSellerButton.setText(existingConversationId != null ? "View Conversation" : "Message Seller");
+        setVisible(messageSellerButton, true);
     }
 
     private void setVisible(javafx.scene.Node node, boolean visible) {
@@ -346,6 +431,29 @@ public class AdvertisementDetailsController {
         }
     }
 
+    /**
+     * Opens the chat page immediately — no popup first. If
+     * {@link #configureMessagingButton} already found an existing
+     * conversation about this ad, it opens that; otherwise it opens the
+     * chat page in its "pending" state (see {@code ChatDetailController}),
+     * where the buyer types their first message inside the normal chat
+     * view, same as replying to any other conversation.
+     */
+    @FXML
+    private void handleMessageSeller() {
+        if (existingConversationId != null) {
+            ChatDetailController.setConversationId(existingConversationId);
+        } else {
+            ChatDetailController.setPendingConversation(selectedAdvertisementId, titleLabel.getText(), ownerUsername);
+        }
+
+        try {
+            Main.switchScene("/view/chat-detail.fxml");
+        } catch (IOException e) {
+            errorLabel.setText("Could not open the conversation.");
+        }
+    }
+
     @FXML
     private void handleBack() {
         try {
@@ -353,5 +461,76 @@ public class AdvertisementDetailsController {
         } catch (IOException e) {
             errorLabel.setText("Could not return to the advertisement list.");
         }
+    }
+
+    /**
+     * Moved here from the purchase-history page so there's a single
+     * place to rate a seller (POST /api/advertisements/{id}/ratings).
+     * The backend ({@code RatingService#rate}) is still the source of
+     * truth for "already rated" — this button is just hidden once
+     * {@link #loadSellerRatingSummary} already found an existing rating,
+     * so in practice this duplicate-submission path is rarely hit, but
+     * it's kept as a safety net (e.g. a rating submitted from another
+     * session since this page loaded).
+     */
+    @FXML
+    private void handleRateSeller() {
+        Optional<Pair<Integer, String>> result = showRatingDialog();
+        if (result.isEmpty()) {
+            return;
+        }
+
+        try {
+            apiClient.rateSeller(selectedAdvertisementId, result.get().getKey(), result.get().getValue());
+            errorLabel.setStyle("-fx-text-fill: green;");
+            errorLabel.setText("Thanks — your rating was submitted.");
+            loadAdvertisement();
+        } catch (IOException e) {
+            String message = e.getMessage();
+            errorLabel.setStyle("-fx-text-fill: red;");
+            if (message != null && message.toLowerCase().contains("already rated")) {
+                errorLabel.setText("You have already submitted a rating for this purchase.");
+                setVisible(rateSellerButton, false);
+            } else {
+                errorLabel.setText("Could not submit rating: " + message);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            errorLabel.setText("The request was interrupted.");
+        }
+    }
+
+    /** A small inline dialog (score 1-5 + optional comment) — no separate FXML needed for something this simple. */
+    private Optional<Pair<Integer, String>> showRatingDialog() {
+        Dialog<Pair<Integer, String>> dialog = new Dialog<>();
+        dialog.setTitle("Rate Seller");
+        dialog.setHeaderText("How was your experience with this seller?");
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        ComboBox<Integer> scoreComboBox = new ComboBox<>(FXCollections.observableArrayList(1, 2, 3, 4, 5));
+        scoreComboBox.getSelectionModel().select(Integer.valueOf(5));
+        TextArea commentArea = new TextArea();
+        commentArea.setPromptText("Optional comment");
+        commentArea.setPrefRowCount(3);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(10));
+        grid.add(new Label("Score (1-5):"), 0, 0);
+        grid.add(scoreComboBox, 1, 0);
+        grid.add(new Label("Comment:"), 0, 1);
+        grid.add(commentArea, 1, 1);
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(buttonType -> {
+            if (buttonType == ButtonType.OK) {
+                Integer score = scoreComboBox.getValue();
+                return new Pair<>(score != null ? score : 5, commentArea.getText());
+            }
+            return null;
+        });
+
+        return dialog.showAndWait();
     }
 }
