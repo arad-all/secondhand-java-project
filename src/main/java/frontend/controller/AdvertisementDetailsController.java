@@ -87,6 +87,8 @@ public class AdvertisementDetailsController {
     private final ApiClient apiClient = new ApiClient();
     private boolean isFavorite;
     private String ownerUsername;
+    private String buyerUsername;
+    private boolean alreadyRatedByCurrentUser;
     private Long existingConversationId;
 
     public static void setSelectedAdvertisementId(Long id) {
@@ -117,6 +119,7 @@ public class AdvertisementDetailsController {
             ownerLabel.setText("Seller: " + ownerUsername);
 
             String buyerUsername = ad.hasNonNull("buyerUsername") ? ad.get("buyerUsername").asText() : null;
+            this.buyerUsername = buyerUsername;
             if (buyerUsername != null) {
                 buyerLabel.setText("Sold to: " + buyerUsername);
                 setVisible(buyerLabel, true);
@@ -143,6 +146,7 @@ public class AdvertisementDetailsController {
             configureAdminButtons(isAdmin, status);
             configureMessagingButton(loggedIn, isOwner);
             loadSellerRatingSummary(ownerUsername);
+            configureRateSellerButton(loggedIn, status);
 
             errorLabel.setText("");
         } catch (IOException e) {
@@ -160,8 +164,15 @@ public class AdvertisementDetailsController {
      * see {@link #handleViewSellerProfile}). Resolves the seller's
      * numeric id from their username first, since that's all an
      * {@code AdvertisementDetailResponse} carries.
+     * <p>
+     * Also determines {@link #alreadyRatedByCurrentUser} from the same
+     * response — {@code RatingResponse} already carries the
+     * advertisementId and buyerUsername of every rating, so no extra
+     * call is needed to check whether the buyer already rated this
+     * specific purchase (used by {@link #configureRateSellerButton}).
      */
     private void loadSellerRatingSummary(String ownerUsername) {
+        alreadyRatedByCurrentUser = false;
         try {
             JsonNode seller = apiClient.getUserByUsername(ownerUsername);
             Long sellerId = seller.path("id").asLong();
@@ -175,6 +186,17 @@ public class AdvertisementDetailsController {
                     : String.format("Seller rating: %.1f / 5 (%d rating%s)", average, total, total == 1 ? "" : "s"));
             setVisible(sellerRatingLabel, true);
             setVisible(viewSellerProfileButton, true);
+
+            String myUsername = SessionManager.getInstance().getUsername();
+            if (myUsername != null) {
+                for (JsonNode rating : ratings.path("ratings")) {
+                    if (rating.path("advertisementId").asLong() == selectedAdvertisementId
+                            && myUsername.equals(rating.path("buyerUsername").asText())) {
+                        alreadyRatedByCurrentUser = true;
+                        break;
+                    }
+                }
+            }
         } catch (IOException | InterruptedException e) {
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
@@ -183,6 +205,19 @@ public class AdvertisementDetailsController {
             setVisible(sellerRatingLabel, false);
             setVisible(viewSellerProfileButton, false);
         }
+    }
+
+    /**
+     * The buyer of a SOLD ad may rate its seller exactly once — visible
+     * only for that buyer, only once SOLD, and only if
+     * {@link #loadSellerRatingSummary} didn't already find an existing
+     * rating from them for this ad. Moved here from the purchase-history
+     * page so there's a single place to rate a seller.
+     */
+    private void configureRateSellerButton(boolean loggedIn, String status) {
+        boolean isBuyer = loggedIn && buyerUsername != null
+                && buyerUsername.equals(SessionManager.getInstance().getUsername());
+        setVisible(rateSellerButton, isBuyer && "SOLD".equals(status) && !alreadyRatedByCurrentUser);
     }
 
     private void configureFavoriteButton(boolean loggedIn) {

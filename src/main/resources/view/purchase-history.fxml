@@ -18,11 +18,10 @@
             <Label style="-fx-font-size: 22px; -fx-font-weight: bold;" text="Purchase History"/>
             <HBox spacing="10">
                 <Button onAction="#handleViewSelected" text="View Details"/>
-                <Button onAction="#handleRateSeller" text="Rate Seller"/>
                 <Button onAction="#handleRefresh" text="Refresh"/>
                 <Button onAction="#handleBack" text="Back to Browse"/>
             </HBox>
-            <Label text="Advertisements you have bought. Select one to view it or rate its seller."/>
+            <Label text="Advertisements you have bought. Select one and view it to rate its seller."/>
         </VBox>
     </top>
     <center>
