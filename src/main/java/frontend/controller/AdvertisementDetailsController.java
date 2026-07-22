@@ -18,12 +18,21 @@ import java.util.Set;
 /**
  * UI logic for the advertisement details page. The id of the advertisement
  * to display is passed in via a static setter called by whichever page
- * navigated here (list, my-advertisements, favorites, admin panel) —
- * simple enough for this project's needs, no navigation framework required.
+ * navigated here (list, my-advertisements, favorites, purchase history,
+ * admin panel) — simple enough for this project's needs, no navigation
+ * framework required.
  */
 public class AdvertisementDetailsController {
 
-    private static final Set<String> EDITABLE_STATUSES = Set.of("ACTIVE", "PENDING_REVIEW", "REJECTED");
+    /**
+     * Statuses a DELETE is allowed from — mirrors
+     * {@code AdvertisementService.DELETABLE_STATUSES} exactly. Editing is
+     * stricter than deleting: the backend only allows PATCH while the ad
+     * is ACTIVE (see {@code AdvertisementService.editAdvertisement}), so
+     * REJECTED/PENDING_REVIEW ads must not offer an Edit button even
+     * though they can still be deleted.
+     */
+    private static final Set<String> DELETABLE_STATUSES = Set.of("ACTIVE", "PENDING_REVIEW", "REJECTED");
 
     private static Long selectedAdvertisementId;
 
@@ -44,6 +53,12 @@ public class AdvertisementDetailsController {
     @FXML
     private Label buyerLabel;
     @FXML
+    private Label adminNoteLabel;
+    @FXML
+    private Label sellerRatingLabel;
+    @FXML
+    private Button viewSellerProfileButton;
+    @FXML
     private Button favoriteButton;
     @FXML
     private Button editButton;
@@ -60,6 +75,7 @@ public class AdvertisementDetailsController {
 
     private final ApiClient apiClient = new ApiClient();
     private boolean isFavorite;
+    private String ownerUsername;
 
     public static void setSelectedAdvertisementId(Long id) {
         selectedAdvertisementId = id;
@@ -85,7 +101,7 @@ public class AdvertisementDetailsController {
             categoryLabel.setText("Category: " + ad.path("categoryName").asText(""));
             String status = ad.path("status").asText("");
             statusLabel.setText("Status: " + status);
-            String ownerUsername = ad.path("ownerUsername").asText("");
+            ownerUsername = ad.path("ownerUsername").asText("");
             ownerLabel.setText("Seller: " + ownerUsername);
 
             String buyerUsername = ad.hasNonNull("buyerUsername") ? ad.get("buyerUsername").asText() : null;
@@ -96,6 +112,16 @@ public class AdvertisementDetailsController {
                 setVisible(buyerLabel, false);
             }
 
+            // Only meaningful once REJECTED — AdvertisementService clears
+            // adminNote again on approval, so it's null otherwise.
+            String adminNote = ad.hasNonNull("adminNote") ? ad.get("adminNote").asText() : null;
+            if ("REJECTED".equals(status) && adminNote != null && !adminNote.isBlank()) {
+                adminNoteLabel.setText("Rejection reason: " + adminNote);
+                setVisible(adminNoteLabel, true);
+            } else {
+                setVisible(adminNoteLabel, false);
+            }
+
             boolean loggedIn = SessionManager.getInstance().isLoggedIn();
             boolean isOwner = loggedIn && ownerUsername.equals(SessionManager.getInstance().getUsername());
             boolean isAdmin = SessionManager.getInstance().isAdmin();
@@ -103,6 +129,7 @@ public class AdvertisementDetailsController {
             configureFavoriteButton(loggedIn);
             configureOwnerButtons(isOwner, status);
             configureAdminButtons(isAdmin, status);
+            loadSellerRatingSummary(ownerUsername);
 
             errorLabel.setText("");
         } catch (IOException e) {
@@ -110,6 +137,38 @@ public class AdvertisementDetailsController {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             errorLabel.setText("Loading advertisement was interrupted.");
+        }
+    }
+
+    /**
+     * Per the project spec's "view advertisement details" scenario, the
+     * seller's average rating is shown right on this page (the full
+     * review list lives on the dedicated seller-profile page instead —
+     * see {@link #handleViewSellerProfile}). Resolves the seller's
+     * numeric id from their username first, since that's all an
+     * {@code AdvertisementDetailResponse} carries.
+     */
+    private void loadSellerRatingSummary(String ownerUsername) {
+        try {
+            JsonNode seller = apiClient.getUserByUsername(ownerUsername);
+            Long sellerId = seller.path("id").asLong();
+
+            JsonNode ratings = apiClient.getSellerRatings(sellerId);
+            long total = ratings.path("totalRatings").asLong(0);
+            double average = ratings.path("averageScore").asDouble(0.0);
+
+            sellerRatingLabel.setText(total == 0
+                    ? "Seller rating: no ratings yet"
+                    : String.format("Seller rating: %.1f / 5 (%d rating%s)", average, total, total == 1 ? "" : "s"));
+            setVisible(sellerRatingLabel, true);
+            setVisible(viewSellerProfileButton, true);
+        } catch (IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            // Non-fatal: just hide these rather than blocking the whole page.
+            setVisible(sellerRatingLabel, false);
+            setVisible(viewSellerProfileButton, false);
         }
     }
 
@@ -139,9 +198,10 @@ public class AdvertisementDetailsController {
     }
 
     private void configureOwnerButtons(boolean isOwner, String status) {
-        boolean editable = isOwner && EDITABLE_STATUSES.contains(status);
-        setVisible(editButton, editable);
-        setVisible(deleteButton, editable);
+        // Editing is only ever allowed while ACTIVE (see AdvertisementService.editAdvertisement) —
+        // in particular, a REJECTED ad can no longer be edited, only deleted or resubmitted as new.
+        setVisible(editButton, isOwner && "ACTIVE".equals(status));
+        setVisible(deleteButton, isOwner && DELETABLE_STATUSES.contains(status));
         setVisible(markAsSoldButton, isOwner && "ACTIVE".equals(status));
     }
 
@@ -151,7 +211,7 @@ public class AdvertisementDetailsController {
         setVisible(rejectButton, pending);
         // An admin may also delete an ad directly from here, on top of the
         // owner's own delete button configured above.
-        if (isAdmin && EDITABLE_STATUSES.contains(status)) {
+        if (isAdmin && DELETABLE_STATUSES.contains(status)) {
             setVisible(deleteButton, true);
         }
     }
@@ -194,20 +254,20 @@ public class AdvertisementDetailsController {
     private void handleMarkAsSold() {
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Mark as Sold");
-        dialog.setHeaderText("Enter the buyer's user id.");
-        dialog.setContentText("Buyer user id:");
+        dialog.setHeaderText("Enter the buyer's username.");
+        dialog.setContentText("Buyer username:");
 
         Optional<String> result = dialog.showAndWait();
         if (result.isEmpty() || result.get().isBlank()) {
             return;
         }
 
+        String buyerUsername = result.get().trim();
         try {
-            Long buyerId = Long.parseLong(result.get().trim());
+            JsonNode buyer = apiClient.getUserByUsername(buyerUsername);
+            Long buyerId = buyer.path("id").asLong();
             apiClient.markAsSold(selectedAdvertisementId, buyerId);
             loadAdvertisement();
-        } catch (NumberFormatException e) {
-            errorLabel.setText("Buyer user id must be a whole number.");
         } catch (IOException e) {
             errorLabel.setText("Could not mark as sold: " + e.getMessage());
         } catch (InterruptedException e) {
@@ -270,6 +330,19 @@ public class AdvertisementDetailsController {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             errorLabel.setText("The request was interrupted.");
+        }
+    }
+
+    @FXML
+    private void handleViewSellerProfile() {
+        if (ownerUsername == null || ownerUsername.isBlank()) {
+            return;
+        }
+        SellerProfileController.setSellerUsername(ownerUsername);
+        try {
+            Main.switchScene("/view/seller-profile.fxml");
+        } catch (IOException e) {
+            errorLabel.setText("Could not open the seller's profile.");
         }
     }
 

@@ -21,6 +21,13 @@
     <Label fx:id="statusLabel"/>
     <Label fx:id="ownerLabel"/>
     <Label fx:id="buyerLabel" managed="false" visible="false"/>
+    <Label fx:id="adminNoteLabel" managed="false" style="-fx-text-fill: #b45309;" visible="false" wrapText="true"/>
+
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Label fx:id="sellerRatingLabel" managed="false" visible="false"/>
+        <Button fx:id="viewSellerProfileButton" managed="false" onAction="#handleViewSellerProfile"
+                text="View Seller Profile" visible="false"/>
+    </HBox>
 
     <HBox spacing="10">
         <Button fx:id="favoriteButton" managed="false" onAction="#handleToggleFavorite" text="Add to Favorites"

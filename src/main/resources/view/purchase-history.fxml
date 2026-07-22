@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+            fx:controller="frontend.controller.PurchaseHistoryController">
+    <top>
+        <VBox spacing="10">
+            <padding>
+                <Insets bottom="10.0" left="15.0" right="15.0" top="15.0"/>
+            </padding>
+            <Label style="-fx-font-size: 22px; -fx-font-weight: bold;" text="Purchase History"/>
+            <HBox spacing="10">
+                <Button onAction="#handleViewSelected" text="View Details"/>
+                <Button onAction="#handleRateSeller" text="Rate Seller"/>
+                <Button onAction="#handleRefresh" text="Refresh"/>
+                <Button onAction="#handleBack" text="Back to Browse"/>
+            </HBox>
+            <Label text="Advertisements you have bought. Select one to view it or rate its seller."/>
+        </VBox>
+    </top>
+    <center>
+        <ListView fx:id="purchasesListView" BorderPane.alignment="CENTER"/>
+    </center>
+    <bottom>
+        <Label fx:id="errorLabel" style="-fx-text-fill: red;" wrapText="true">
+            <BorderPane.margin>
+                <Insets bottom="10.0" left="15.0" right="15.0" top="5.0"/>
+            </BorderPane.margin>
+        </Label>
+    </bottom>
+</BorderPane>

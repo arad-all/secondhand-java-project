@@ -40,6 +40,13 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User with id " + id + " not found."));
     }
 
+    /** Same lookup as {@link #getById}, by username instead — backs the public seller-profile endpoint. */
+    @Transactional(readOnly = true)
+    public User getByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User '" + username + "' not found."));
+    }
+
     /**
      * Blocks a user's account, preventing further logins (see
      * {@code AuthService.login}). An admin can't block themselves or

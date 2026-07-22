@@ -23,7 +23,7 @@
     <ComboBox fx:id="cityComboBox" prefWidth="260" promptText="City"/>
 
     <Button onAction="#handleSubmit" text="Submit"/>
-    <Button onAction="#handleCancel" text="Cancel"/>
+    <Button onAction="#handleCancel" text="Back to Browse"/>
 
     <Label fx:id="errorLabel" wrapText="true"/>
 </VBox>

@@ -114,6 +114,11 @@ public class ApiClient {
         return sendJsonRequest("GET", "/api/advertisements/my?" + PAGE_SIZE_PARAM + query, null);
     }
 
+    /** Advertisements the logged-in caller has purchased (i.e. was recorded as buyer on). Returns a Page. */
+    public JsonNode getPurchasedAdvertisements() throws IOException, InterruptedException {
+        return sendJsonRequest("GET", "/api/advertisements/purchased?" + PAGE_SIZE_PARAM, null);
+    }
+
     public JsonNode getAdvertisementById(Long id) throws IOException, InterruptedException {
         return sendJsonRequest("GET", "/api/advertisements/" + id, null);
     }
@@ -236,6 +241,28 @@ public class ApiClient {
 
     public void removeFavorite(Long advertisementId) throws IOException, InterruptedException {
         sendJsonRequest("DELETE", "/api/favorites/" + advertisementId, null);
+    }
+
+    // ------------------------------------------------------------------
+    // Users & ratings (seller profile, purchase history rating)
+    // ------------------------------------------------------------------
+
+    /** Public seller profile (username/full name/phone) by username — e.g. an ad's ownerUsername. */
+    public JsonNode getUserByUsername(String username) throws IOException, InterruptedException {
+        return sendJsonRequest("GET", "/api/users/by-username/" + encode(username), null);
+    }
+
+    /** A seller's reputation: average score, total count, and every rating they've received. Public. */
+    public JsonNode getSellerRatings(Long sellerId) throws IOException, InterruptedException {
+        return sendJsonRequest("GET", "/api/users/" + sellerId + "/ratings", null);
+    }
+
+    /** Rates the seller of a SOLD advertisement the caller bought. Score must be 1-5; comment is optional. */
+    public JsonNode rateSeller(Long advertisementId, int score, String comment) throws IOException, InterruptedException {
+        ObjectNode body = objectMapper.createObjectNode();
+        body.put("score", score);
+        body.put("comment", comment);
+        return sendJsonRequest("POST", "/api/advertisements/" + advertisementId + "/ratings", body.toString());
     }
 
     // ------------------------------------------------------------------

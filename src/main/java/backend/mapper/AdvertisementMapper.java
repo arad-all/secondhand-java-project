@@ -59,6 +59,7 @@ public final class AdvertisementMapper {
                 ad.getStatus().name(),
                 ad.getOwner().getUsername(),
                 ad.getBuyer() != null ? ad.getBuyer().getUsername() : null,
+                ad.getAdminNote(),
                 imageUrls);
     }
 }

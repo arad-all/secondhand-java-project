@@ -24,6 +24,7 @@
                 <HBox fx:id="navBox" alignment="CENTER_RIGHT" spacing="10" HBox.hgrow="ALWAYS">
                     <Button onAction="#handleGoToMyAdvertisements" text="My Advertisements"/>
                     <Button onAction="#handleGoToFavorites" text="Favorites"/>
+                    <Button onAction="#handleGoToPurchaseHistory" text="Purchase History"/>
                     <Button fx:id="adminPanelButton" onAction="#handleGoToAdminPanel" text="Admin Panel"/>
                     <Button onAction="#handleCreateNew" text="New Advertisement"/>
                     <Button onAction="#handleLogout" text="Logout"/>

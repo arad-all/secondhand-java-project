@@ -142,11 +142,14 @@ public class AdvertisementService {
     /**
      * Fetches one advertisement's detail view. An {@code ACTIVE} ad is
      * visible to anyone; anything else (pending review, rejected, sold,
-     * deleted) is visible only to its owner or an admin. An ad owned by a
-     * {@code BLOCKED} account is treated the same way — hidden from
-     * everyone except the owner (moot in practice, since a blocked
-     * account's requests are rejected before they ever reach this method;
-     * see {@code JwtAuthenticationFilter}) or an admin. Any other caller
+     * deleted) is visible only to its owner, its buyer (once one is
+     * recorded — see {@link #markAsSold}), or an admin — a buyer must
+     * still be able to open the ad they purchased from their purchase
+     * history after it's gone SOLD. An ad owned by a {@code BLOCKED}
+     * account is treated the same way — hidden from everyone except the
+     * owner/buyer (moot in practice, since a blocked account's requests
+     * are rejected before they ever reach this method; see
+     * {@code JwtAuthenticationFilter}) or an admin. Any other caller
      * gets the exact same {@link ResourceNotFoundException} as a truly
      * missing id — never a 403 — so this never leaks whether a
      * non-visible ad exists.
@@ -160,8 +163,9 @@ public class AdvertisementService {
                 .orElseThrow(() -> notFound(id));
 
         boolean isOwner = currentUserId != null && ad.getOwner().getId().equals(currentUserId);
+        boolean isBuyer = currentUserId != null && ad.getBuyer() != null && ad.getBuyer().getId().equals(currentUserId);
         boolean ownerBlocked = ad.getOwner().getStatus() == AccountStatus.BLOCKED;
-        if ((ad.getStatus() != AdvertisementStatus.ACTIVE || ownerBlocked) && !isOwner && !isAdmin) {
+        if ((ad.getStatus() != AdvertisementStatus.ACTIVE || ownerBlocked) && !isOwner && !isBuyer && !isAdmin) {
             throw notFound(id);
         }
 

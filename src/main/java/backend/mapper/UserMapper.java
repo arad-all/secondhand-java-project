@@ -1,5 +1,6 @@
 package backend.mapper;
 
+import backend.controller.dto.SellerProfileResponse;
 import backend.controller.dto.UserResponse;
 import backend.model.entity.User;
 
@@ -23,5 +24,14 @@ public final class UserMapper {
                 user.getEmail(),
                 user.getRole().name(),
                 user.getStatus().name());
+    }
+
+    /** Public-safe subset of {@link #toResponse}, for the seller-profile endpoint. */
+    public static SellerProfileResponse toSellerProfile(User user) {
+        return new SellerProfileResponse(
+                user.getId(),
+                user.getUsername(),
+                user.getFullName(),
+                user.getPhoneNumber());
     }
 }
