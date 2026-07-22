@@ -294,6 +294,13 @@ public class ApiClient {
         return sendJsonRequest("GET", "/api/conversations/" + conversationId, null);
     }
 
+    /** Replies within an existing conversation. Either participant — buyer or seller — may call this. */
+    public JsonNode sendMessage(Long conversationId, String content) throws IOException, InterruptedException {
+        ObjectNode body = objectMapper.createObjectNode();
+        body.put("content", content);
+        return sendJsonRequest("POST", "/api/conversations/" + conversationId + "/messages", body.toString());
+    }
+
     // ------------------------------------------------------------------
     // Admin: advertisement moderation + user moderation
     // ------------------------------------------------------------------
