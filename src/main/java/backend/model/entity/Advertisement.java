@@ -13,6 +13,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.BatchSize;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.Formula;
@@ -86,6 +87,7 @@ public class Advertisement extends BaseEntity {
     private City city;
 
     @OneToMany(mappedBy = "advertisement", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 20)
     private List<AdvertisementImage> images = new ArrayList<>();
 
     @OneToMany(mappedBy = "advertisement", cascade = CascadeType.ALL, orphanRemoval = true)

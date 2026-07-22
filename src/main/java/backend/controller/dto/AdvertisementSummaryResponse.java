@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 /**
  * Shortened advertisement representation used for the list endpoint
  * (GET /api/advertisements). Keeps list payloads small.
+ * {@code firstImageUrl} is {@code null} when the advertisement has no images.
  */
 public record AdvertisementSummaryResponse(
         Long id,
@@ -13,6 +14,7 @@ public record AdvertisementSummaryResponse(
         String cityName,
         String categoryName,
         String status,
-        Double sellerRating
+        Double sellerRating,
+        String firstImageUrl
 ) {
 }

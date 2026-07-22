@@ -23,8 +23,17 @@ public final class AdvertisementMapper {
     private AdvertisementMapper() {
     }
 
-    /** Card/list view — deliberately excludes description and images to keep list payloads small. */
+    /** Card/list view — excludes description and full image list to keep list payloads small,
+     *  but includes the first image URL (if any) so the UI can show a thumbnail. */
     public static AdvertisementSummaryResponse toSummary(Advertisement ad) {
+        String firstImageUrl = ad.getImages().stream()
+                .sorted(Comparator.comparing(
+                        AdvertisementImage::getDisplayOrder,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .findFirst()
+                .map(image -> "/api/advertisements/" + ad.getId() + "/images/" + image.getImagePath())
+                .orElse(null);
+
         return new AdvertisementSummaryResponse(
                 ad.getId(),
                 ad.getTitle(),
@@ -32,7 +41,8 @@ public final class AdvertisementMapper {
                 ad.getCity().getName(),
                 ad.getCategory().getName(),
                 ad.getStatus().name(),
-                ad.getSellerRating());
+                ad.getSellerRating(),
+                firstImageUrl);
     }
 
     /**
