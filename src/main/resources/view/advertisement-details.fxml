@@ -27,6 +27,8 @@
         <Label fx:id="sellerRatingLabel" managed="false" visible="false"/>
         <Button fx:id="viewSellerProfileButton" managed="false" onAction="#handleViewSellerProfile"
                 text="View Seller Profile" visible="false"/>
+        <Button fx:id="messageSellerButton" managed="false" onAction="#handleMessageSeller" text="Message Seller"
+                visible="false"/>
     </HBox>
 
     <HBox spacing="10">
