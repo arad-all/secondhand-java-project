@@ -4,12 +4,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 import frontend.Main;
 import frontend.service.ApiClient;
 import frontend.service.SessionManager;
+import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.layout.GridPane;
+import javafx.util.Pair;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -60,6 +67,8 @@ public class AdvertisementDetailsController {
     private Button viewSellerProfileButton;
     @FXML
     private Button messageSellerButton;
+    @FXML
+    private Button rateSellerButton;
     @FXML
     private Button favoriteButton;
     @FXML
@@ -388,44 +397,25 @@ public class AdvertisementDetailsController {
     }
 
     /**
-     * Opens the existing conversation about this ad if
-     * {@link #configureMessagingButton} found one, otherwise prompts for
-     * the first message and starts one — POST
-     * /api/advertisements/{id}/messages both creates the conversation
-     * and sends the message in one call, and its response tells us the
-     * conversationId to open next.
+     * Opens the chat page immediately — no popup first. If
+     * {@link #configureMessagingButton} already found an existing
+     * conversation about this ad, it opens that; otherwise it opens the
+     * chat page in its "pending" state (see {@code ChatDetailController}),
+     * where the buyer types their first message inside the normal chat
+     * view, same as replying to any other conversation.
      */
     @FXML
     private void handleMessageSeller() {
         if (existingConversationId != null) {
             ChatDetailController.setConversationId(existingConversationId);
-            try {
-                Main.switchScene("/view/chat-detail.fxml");
-            } catch (IOException e) {
-                errorLabel.setText("Could not open the conversation.");
-            }
-            return;
-        }
-
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Message Seller");
-        dialog.setHeaderText("Send a message to " + ownerUsername + " about this advertisement.");
-        dialog.setContentText("Message:");
-
-        Optional<String> result = dialog.showAndWait();
-        if (result.isEmpty() || result.get().isBlank()) {
-            return;
+        } else {
+            ChatDetailController.setPendingConversation(selectedAdvertisementId, titleLabel.getText(), ownerUsername);
         }
 
         try {
-            JsonNode message = apiClient.messageSeller(selectedAdvertisementId, result.get().trim());
-            ChatDetailController.setConversationId(message.path("conversationId").asLong());
             Main.switchScene("/view/chat-detail.fxml");
         } catch (IOException e) {
-            errorLabel.setText("Could not send message: " + e.getMessage());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            errorLabel.setText("The request was interrupted.");
+            errorLabel.setText("Could not open the conversation.");
         }
     }
 
@@ -436,5 +426,76 @@ public class AdvertisementDetailsController {
         } catch (IOException e) {
             errorLabel.setText("Could not return to the advertisement list.");
         }
+    }
+
+    /**
+     * Moved here from the purchase-history page so there's a single
+     * place to rate a seller (POST /api/advertisements/{id}/ratings).
+     * The backend ({@code RatingService#rate}) is still the source of
+     * truth for "already rated" — this button is just hidden once
+     * {@link #loadSellerRatingSummary} already found an existing rating,
+     * so in practice this duplicate-submission path is rarely hit, but
+     * it's kept as a safety net (e.g. a rating submitted from another
+     * session since this page loaded).
+     */
+    @FXML
+    private void handleRateSeller() {
+        Optional<Pair<Integer, String>> result = showRatingDialog();
+        if (result.isEmpty()) {
+            return;
+        }
+
+        try {
+            apiClient.rateSeller(selectedAdvertisementId, result.get().getKey(), result.get().getValue());
+            errorLabel.setStyle("-fx-text-fill: green;");
+            errorLabel.setText("Thanks — your rating was submitted.");
+            loadAdvertisement();
+        } catch (IOException e) {
+            String message = e.getMessage();
+            errorLabel.setStyle("-fx-text-fill: red;");
+            if (message != null && message.toLowerCase().contains("already rated")) {
+                errorLabel.setText("You have already submitted a rating for this purchase.");
+                setVisible(rateSellerButton, false);
+            } else {
+                errorLabel.setText("Could not submit rating: " + message);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            errorLabel.setText("The request was interrupted.");
+        }
+    }
+
+    /** A small inline dialog (score 1-5 + optional comment) — no separate FXML needed for something this simple. */
+    private Optional<Pair<Integer, String>> showRatingDialog() {
+        Dialog<Pair<Integer, String>> dialog = new Dialog<>();
+        dialog.setTitle("Rate Seller");
+        dialog.setHeaderText("How was your experience with this seller?");
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        ComboBox<Integer> scoreComboBox = new ComboBox<>(FXCollections.observableArrayList(1, 2, 3, 4, 5));
+        scoreComboBox.getSelectionModel().select(Integer.valueOf(5));
+        TextArea commentArea = new TextArea();
+        commentArea.setPromptText("Optional comment");
+        commentArea.setPrefRowCount(3);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(10));
+        grid.add(new Label("Score (1-5):"), 0, 0);
+        grid.add(scoreComboBox, 1, 0);
+        grid.add(new Label("Comment:"), 0, 1);
+        grid.add(commentArea, 1, 1);
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(buttonType -> {
+            if (buttonType == ButtonType.OK) {
+                Integer score = scoreComboBox.getValue();
+                return new Pair<>(score != null ? score : 5, commentArea.getText());
+            }
+            return null;
+        });
+
+        return dialog.showAndWait();
     }
 }

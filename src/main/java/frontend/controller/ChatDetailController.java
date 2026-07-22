@@ -28,10 +28,24 @@ import java.io.IOException;
  * whichever page navigated here ({@code ChatListController} or
  * {@code AdvertisementDetailsController}) — the same pattern used
  * throughout this app's navigation.
+ * <p>
+ * There's also a "pending" entry point ({@link #setPendingConversation}):
+ * when there's no conversation yet for an ad, this page still opens
+ * immediately (per the spec, a buyer should type their first message
+ * inside the normal chat view, not a popup beforehand) showing just the
+ * ad title/seller and an empty thread. The first {@link #handleSend}
+ * then calls {@code POST /api/advertisements/{id}/messages} instead of
+ * the usual reply endpoint — that's the same call that creates the
+ * conversation on the backend — and once it returns, this page has a
+ * real conversationId and behaves exactly like the normal case from
+ * then on.
  */
 public class ChatDetailController {
 
     private static Long conversationId;
+    private static Long pendingAdvertisementId;
+    private static String pendingAdvertisementTitle;
+    private static String pendingSellerUsername;
 
     @FXML
     private Label titleLabel;
@@ -46,20 +60,34 @@ public class ChatDetailController {
 
     private final ApiClient apiClient = new ApiClient();
 
+    /** Opens an existing conversation directly. */
     public static void setConversationId(Long id) {
         conversationId = id;
+        pendingAdvertisementId = null;
+    }
+
+    /** Opens the chat page for an ad with no conversation yet — see the class Javadoc. */
+    public static void setPendingConversation(Long advertisementId, String advertisementTitle, String sellerUsername) {
+        conversationId = null;
+        pendingAdvertisementId = advertisementId;
+        pendingAdvertisementTitle = advertisementTitle;
+        pendingSellerUsername = sellerUsername;
     }
 
     @FXML
     private void initialize() {
         messagesListView.setCellFactory(list -> new MessageCell());
+        messagesListView.setPlaceholder(new Label("No messages yet — say hello!"));
 
-        if (conversationId == null) {
+        if (conversationId != null) {
+            loadConversation();
+        } else if (pendingAdvertisementId != null) {
+            titleLabel.setText(pendingAdvertisementTitle);
+            participantsLabel.setText("Conversation with: " + pendingSellerUsername);
+            messagesListView.setItems(FXCollections.observableArrayList());
+        } else {
             errorLabel.setText("No conversation selected.");
-            return;
         }
-
-        loadConversation();
     }
 
     private void loadConversation() {
@@ -100,7 +128,15 @@ public class ChatDetailController {
         }
 
         try {
-            apiClient.sendMessage(conversationId, content.trim());
+            if (conversationId != null) {
+                apiClient.sendMessage(conversationId, content.trim());
+            } else {
+                // First message for this ad — this single call both creates
+                // the conversation on the backend and sends the message.
+                JsonNode message = apiClient.messageSeller(pendingAdvertisementId, content.trim());
+                conversationId = message.path("conversationId").asLong();
+                pendingAdvertisementId = null;
+            }
             messageInputField.clear();
             loadConversation();
         } catch (IOException e) {
@@ -113,7 +149,9 @@ public class ChatDetailController {
 
     @FXML
     private void handleRefresh() {
-        loadConversation();
+        if (conversationId != null) {
+            loadConversation();
+        }
     }
 
     @FXML
