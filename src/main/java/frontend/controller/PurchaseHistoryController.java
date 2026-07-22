@@ -6,30 +6,21 @@ import frontend.service.ApiClient;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.geometry.Insets;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
-import javafx.scene.control.TextArea;
 import javafx.scene.input.MouseButton;
-import javafx.scene.layout.GridPane;
-import javafx.util.Pair;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 
 /**
  * UI logic for the purchase-history page (GET /api/advertisements/purchased)
  * — every advertisement the logged-in caller was recorded as the buyer of
  * (i.e. via {@code AdvertisementDetailsController#handleMarkAsSold}).
- * From here the buyer can revisit the ad or rate its seller
- * (POST /api/advertisements/{id}/ratings).
+ * Rating the seller happens from the advertisement details page itself
+ * (see {@code AdvertisementDetailsController#handleRateSeller}) — this
+ * page just lists purchases and opens one for viewing.
  */
 public class PurchaseHistoryController {
 
@@ -40,17 +31,6 @@ public class PurchaseHistoryController {
 
     private final ApiClient apiClient = new ApiClient();
     private final List<Long> purchasedAdIds = new ArrayList<>();
-
-    /**
-     * Advertisement ids the buyer has already rated this session — checked
-     * before even opening the rating dialog, so a repeat "Rate Seller"
-     * press doesn't need a round trip to learn what
-     * {@code RatingService#rate}'s existing duplicate check would say
-     * anyway. Populated on a successful submission and also from the
-     * backend's own rejection (see {@link #handleRateSeller}), so it
-     * stays correct even after an app restart wipes this in-memory set.
-     */
-    private final Set<Long> ratedAdIds = new HashSet<>();
 
     @FXML
     private void initialize() {
@@ -106,85 +86,6 @@ public class PurchaseHistoryController {
         } catch (IOException e) {
             errorLabel.setText("Could not open advertisement details.");
         }
-    }
-
-    @FXML
-    private void handleRateSeller() {
-        Long id = selectedAdId();
-        if (id == null) {
-            errorLabel.setText("Select a purchased advertisement first.");
-            return;
-        }
-        if (ratedAdIds.contains(id)) {
-            showAlreadyRatedMessage();
-            return;
-        }
-
-        Optional<Pair<Integer, String>> result = showRatingDialog();
-        if (result.isEmpty()) {
-            return;
-        }
-
-        try {
-            apiClient.rateSeller(id, result.get().getKey(), result.get().getValue());
-            ratedAdIds.add(id);
-            errorLabel.setStyle("-fx-text-fill: green;");
-            errorLabel.setText("Thanks — your rating was submitted.");
-        } catch (IOException e) {
-            String message = e.getMessage();
-            if (message != null && message.toLowerCase().contains("already rated")) {
-                // The backend (RatingService#rate) is the source of truth for this —
-                // this just keeps our local tracking in sync with it, e.g. after a
-                // restart cleared ratedAdIds, or the ad was rated in another session.
-                ratedAdIds.add(id);
-                showAlreadyRatedMessage();
-            } else {
-                errorLabel.setStyle("-fx-text-fill: red;");
-                errorLabel.setText("Could not submit rating: " + message);
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            errorLabel.setText("The request was interrupted.");
-        }
-    }
-
-    private void showAlreadyRatedMessage() {
-        errorLabel.setStyle("-fx-text-fill: red;");
-        errorLabel.setText("You have already submitted a rating for this purchase.");
-    }
-
-    /** A small inline dialog (score 1-5 + optional comment) — no separate FXML needed for something this simple. */
-    private Optional<Pair<Integer, String>> showRatingDialog() {
-        Dialog<Pair<Integer, String>> dialog = new Dialog<>();
-        dialog.setTitle("Rate Seller");
-        dialog.setHeaderText("How was your experience with this seller?");
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-
-        ComboBox<Integer> scoreComboBox = new ComboBox<>(FXCollections.observableArrayList(1, 2, 3, 4, 5));
-        scoreComboBox.getSelectionModel().select(Integer.valueOf(5));
-        TextArea commentArea = new TextArea();
-        commentArea.setPromptText("Optional comment");
-        commentArea.setPrefRowCount(3);
-
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(10));
-        grid.add(new Label("Score (1-5):"), 0, 0);
-        grid.add(scoreComboBox, 1, 0);
-        grid.add(new Label("Comment:"), 0, 1);
-        grid.add(commentArea, 1, 1);
-        dialog.getDialogPane().setContent(grid);
-
-        dialog.setResultConverter(buttonType -> {
-            if (buttonType == ButtonType.OK) {
-                Integer score = scoreComboBox.getValue();
-                return new Pair<>(score != null ? score : 5, commentArea.getText());
-            }
-            return null;
-        });
-
-        return dialog.showAndWait();
     }
 
     private Long selectedAdId() {
