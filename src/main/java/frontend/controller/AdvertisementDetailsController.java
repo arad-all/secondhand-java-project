@@ -198,9 +198,10 @@ public class AdvertisementDetailsController {
     }
 
     private void configureOwnerButtons(boolean isOwner, String status) {
-        boolean editable = isOwner && EDITABLE_STATUSES.contains(status);
-        setVisible(editButton, editable);
-        setVisible(deleteButton, editable);
+        // Editing is only ever allowed while ACTIVE (see AdvertisementService.editAdvertisement) —
+        // in particular, a REJECTED ad can no longer be edited, only deleted or resubmitted as new.
+        setVisible(editButton, isOwner && "ACTIVE".equals(status));
+        setVisible(deleteButton, isOwner && DELETABLE_STATUSES.contains(status));
         setVisible(markAsSoldButton, isOwner && "ACTIVE".equals(status));
     }
 
