@@ -248,6 +248,15 @@ public class AdvertisementListController {
     }
 
     @FXML
+    private void handleGoToPurchaseHistory() {
+        try {
+            Main.switchScene("/view/purchase-history.fxml");
+        } catch (IOException e) {
+            errorLabel.setText("Could not open purchase history.");
+        }
+    }
+
+    @FXML
     private void handleGoToAdminPanel() {
         try {
             Main.switchScene("/view/admin-panel.fxml");
