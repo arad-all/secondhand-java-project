@@ -101,7 +101,7 @@ public class AdvertisementDetailsController {
             categoryLabel.setText("Category: " + ad.path("categoryName").asText(""));
             String status = ad.path("status").asText("");
             statusLabel.setText("Status: " + status);
-            String ownerUsername = ad.path("ownerUsername").asText("");
+            ownerUsername = ad.path("ownerUsername").asText("");
             ownerLabel.setText("Seller: " + ownerUsername);
 
             String buyerUsername = ad.hasNonNull("buyerUsername") ? ad.get("buyerUsername").asText() : null;
@@ -211,7 +211,7 @@ public class AdvertisementDetailsController {
         setVisible(rejectButton, pending);
         // An admin may also delete an ad directly from here, on top of the
         // owner's own delete button configured above.
-        if (isAdmin && EDITABLE_STATUSES.contains(status)) {
+        if (isAdmin && DELETABLE_STATUSES.contains(status)) {
             setVisible(deleteButton, true);
         }
     }
@@ -254,20 +254,20 @@ public class AdvertisementDetailsController {
     private void handleMarkAsSold() {
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Mark as Sold");
-        dialog.setHeaderText("Enter the buyer's user id.");
-        dialog.setContentText("Buyer user id:");
+        dialog.setHeaderText("Enter the buyer's username.");
+        dialog.setContentText("Buyer username:");
 
         Optional<String> result = dialog.showAndWait();
         if (result.isEmpty() || result.get().isBlank()) {
             return;
         }
 
+        String buyerUsername = result.get().trim();
         try {
-            Long buyerId = Long.parseLong(result.get().trim());
+            JsonNode buyer = apiClient.getUserByUsername(buyerUsername);
+            Long buyerId = buyer.path("id").asLong();
             apiClient.markAsSold(selectedAdvertisementId, buyerId);
             loadAdvertisement();
-        } catch (NumberFormatException e) {
-            errorLabel.setText("Buyer user id must be a whole number.");
         } catch (IOException e) {
             errorLabel.setText("Could not mark as sold: " + e.getMessage());
         } catch (InterruptedException e) {
