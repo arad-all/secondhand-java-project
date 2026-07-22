@@ -266,6 +266,25 @@ public class ApiClient {
     }
 
     // ------------------------------------------------------------------
+    // Chat
+    // ------------------------------------------------------------------
+
+    /**
+     * Sends a message to an advertisement's seller. Creates the
+     * (advertisement, buyer) conversation on first contact and reuses it
+     * on every later call for the same ad — the backend
+     * (ChatService#messageSeller) is what guarantees there's never a
+     * duplicate conversation, not this method. The returned message's
+     * {@code conversationId} is how the caller finds out which
+     * conversation to open next.
+     */
+    public JsonNode messageSeller(Long advertisementId, String content) throws IOException, InterruptedException {
+        ObjectNode body = objectMapper.createObjectNode();
+        body.put("content", content);
+        return sendJsonRequest("POST", "/api/advertisements/" + advertisementId + "/messages", body.toString());
+    }
+
+    // ------------------------------------------------------------------
     // Admin: advertisement moderation + user moderation
     // ------------------------------------------------------------------
 
