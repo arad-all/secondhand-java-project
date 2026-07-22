@@ -116,6 +116,9 @@ public class SecurityConfig {
                         // A seller's reputation is meant to be visible before you'd
                         // ever log in to buy from them, same reasoning as ad browsing.
                         .requestMatchers(HttpMethod.GET, "/api/users/*/ratings").permitAll()
+                        // Likewise, a seller's public profile (username/name/phone) —
+                        // e.g. opened from an ad's detail view — needs no login either.
+                        .requestMatchers(HttpMethod.GET, "/api/users/by-username/*").permitAll()
                         .anyRequest().authenticated())
                 // Turns Spring Security's own rejections (no/invalid token on a
                 // protected path -> 401; wrong role -> 403) into the same
