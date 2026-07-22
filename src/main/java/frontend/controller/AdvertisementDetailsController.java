@@ -18,12 +18,21 @@ import java.util.Set;
 /**
  * UI logic for the advertisement details page. The id of the advertisement
  * to display is passed in via a static setter called by whichever page
- * navigated here (list, my-advertisements, favorites, admin panel) —
- * simple enough for this project's needs, no navigation framework required.
+ * navigated here (list, my-advertisements, favorites, purchase history,
+ * admin panel) — simple enough for this project's needs, no navigation
+ * framework required.
  */
 public class AdvertisementDetailsController {
 
-    private static final Set<String> EDITABLE_STATUSES = Set.of("ACTIVE", "PENDING_REVIEW", "REJECTED");
+    /**
+     * Statuses a DELETE is allowed from — mirrors
+     * {@code AdvertisementService.DELETABLE_STATUSES} exactly. Editing is
+     * stricter than deleting: the backend only allows PATCH while the ad
+     * is ACTIVE (see {@code AdvertisementService.editAdvertisement}), so
+     * REJECTED/PENDING_REVIEW ads must not offer an Edit button even
+     * though they can still be deleted.
+     */
+    private static final Set<String> DELETABLE_STATUSES = Set.of("ACTIVE", "PENDING_REVIEW", "REJECTED");
 
     private static Long selectedAdvertisementId;
 
@@ -44,6 +53,12 @@ public class AdvertisementDetailsController {
     @FXML
     private Label buyerLabel;
     @FXML
+    private Label adminNoteLabel;
+    @FXML
+    private Label sellerRatingLabel;
+    @FXML
+    private Button viewSellerProfileButton;
+    @FXML
     private Button favoriteButton;
     @FXML
     private Button editButton;
@@ -60,6 +75,7 @@ public class AdvertisementDetailsController {
 
     private final ApiClient apiClient = new ApiClient();
     private boolean isFavorite;
+    private String ownerUsername;
 
     public static void setSelectedAdvertisementId(Long id) {
         selectedAdvertisementId = id;
@@ -94,6 +110,16 @@ public class AdvertisementDetailsController {
                 setVisible(buyerLabel, true);
             } else {
                 setVisible(buyerLabel, false);
+            }
+
+            // Only meaningful once REJECTED — AdvertisementService clears
+            // adminNote again on approval, so it's null otherwise.
+            String adminNote = ad.hasNonNull("adminNote") ? ad.get("adminNote").asText() : null;
+            if ("REJECTED".equals(status) && adminNote != null && !adminNote.isBlank()) {
+                adminNoteLabel.setText("Rejection reason: " + adminNote);
+                setVisible(adminNoteLabel, true);
+            } else {
+                setVisible(adminNoteLabel, false);
             }
 
             boolean loggedIn = SessionManager.getInstance().isLoggedIn();
