@@ -244,6 +244,28 @@ public class ApiClient {
     }
 
     // ------------------------------------------------------------------
+    // Users & ratings (seller profile, purchase history rating)
+    // ------------------------------------------------------------------
+
+    /** Public seller profile (username/full name/phone) by username — e.g. an ad's ownerUsername. */
+    public JsonNode getUserByUsername(String username) throws IOException, InterruptedException {
+        return sendJsonRequest("GET", "/api/users/by-username/" + encode(username), null);
+    }
+
+    /** A seller's reputation: average score, total count, and every rating they've received. Public. */
+    public JsonNode getSellerRatings(Long sellerId) throws IOException, InterruptedException {
+        return sendJsonRequest("GET", "/api/users/" + sellerId + "/ratings", null);
+    }
+
+    /** Rates the seller of a SOLD advertisement the caller bought. Score must be 1-5; comment is optional. */
+    public JsonNode rateSeller(Long advertisementId, int score, String comment) throws IOException, InterruptedException {
+        ObjectNode body = objectMapper.createObjectNode();
+        body.put("score", score);
+        body.put("comment", comment);
+        return sendJsonRequest("POST", "/api/advertisements/" + advertisementId + "/ratings", body.toString());
+    }
+
+    // ------------------------------------------------------------------
     // Admin: advertisement moderation + user moderation
     // ------------------------------------------------------------------
 
