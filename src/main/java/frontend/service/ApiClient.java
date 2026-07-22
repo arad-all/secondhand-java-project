@@ -284,6 +284,11 @@ public class ApiClient {
         return sendJsonRequest("POST", "/api/advertisements/" + advertisementId + "/messages", body.toString());
     }
 
+    /** The caller's own conversations (as buyer or seller), newest activity first. */
+    public JsonNode getMyConversations() throws IOException, InterruptedException {
+        return sendJsonRequest("GET", "/api/conversations", null);
+    }
+
     // ------------------------------------------------------------------
     // Admin: advertisement moderation + user moderation
     // ------------------------------------------------------------------
