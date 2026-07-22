@@ -19,8 +19,10 @@ import javafx.util.Pair;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * UI logic for the purchase-history page (GET /api/advertisements/purchased)
@@ -38,6 +40,17 @@ public class PurchaseHistoryController {
 
     private final ApiClient apiClient = new ApiClient();
     private final List<Long> purchasedAdIds = new ArrayList<>();
+
+    /**
+     * Advertisement ids the buyer has already rated this session — checked
+     * before even opening the rating dialog, so a repeat "Rate Seller"
+     * press doesn't need a round trip to learn what
+     * {@code RatingService#rate}'s existing duplicate check would say
+     * anyway. Populated on a successful submission and also from the
+     * backend's own rejection (see {@link #handleRateSeller}), so it
+     * stays correct even after an app restart wipes this in-memory set.
+     */
+    private final Set<Long> ratedAdIds = new HashSet<>();
 
     @FXML
     private void initialize() {
@@ -102,6 +115,10 @@ public class PurchaseHistoryController {
             errorLabel.setText("Select a purchased advertisement first.");
             return;
         }
+        if (ratedAdIds.contains(id)) {
+            showAlreadyRatedMessage();
+            return;
+        }
 
         Optional<Pair<Integer, String>> result = showRatingDialog();
         if (result.isEmpty()) {
@@ -110,15 +127,30 @@ public class PurchaseHistoryController {
 
         try {
             apiClient.rateSeller(id, result.get().getKey(), result.get().getValue());
+            ratedAdIds.add(id);
             errorLabel.setStyle("-fx-text-fill: green;");
             errorLabel.setText("Thanks — your rating was submitted.");
         } catch (IOException e) {
-            errorLabel.setStyle("-fx-text-fill: red;");
-            errorLabel.setText("Could not submit rating: " + e.getMessage());
+            String message = e.getMessage();
+            if (message != null && message.toLowerCase().contains("already rated")) {
+                // The backend (RatingService#rate) is the source of truth for this —
+                // this just keeps our local tracking in sync with it, e.g. after a
+                // restart cleared ratedAdIds, or the ad was rated in another session.
+                ratedAdIds.add(id);
+                showAlreadyRatedMessage();
+            } else {
+                errorLabel.setStyle("-fx-text-fill: red;");
+                errorLabel.setText("Could not submit rating: " + message);
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             errorLabel.setText("The request was interrupted.");
         }
+    }
+
+    private void showAlreadyRatedMessage() {
+        errorLabel.setStyle("-fx-text-fill: red;");
+        errorLabel.setText("You have already submitted a rating for this purchase.");
     }
 
     /** A small inline dialog (score 1-5 + optional comment) — no separate FXML needed for something this simple. */
