@@ -59,6 +59,8 @@ public class AdvertisementDetailsController {
     @FXML
     private Button viewSellerProfileButton;
     @FXML
+    private Button messageSellerButton;
+    @FXML
     private Button favoriteButton;
     @FXML
     private Button editButton;
@@ -76,6 +78,7 @@ public class AdvertisementDetailsController {
     private final ApiClient apiClient = new ApiClient();
     private boolean isFavorite;
     private String ownerUsername;
+    private Long existingConversationId;
 
     public static void setSelectedAdvertisementId(Long id) {
         selectedAdvertisementId = id;
@@ -129,6 +132,7 @@ public class AdvertisementDetailsController {
             configureFavoriteButton(loggedIn);
             configureOwnerButtons(isOwner, status);
             configureAdminButtons(isAdmin, status);
+            configureMessagingButton(loggedIn, isOwner);
             loadSellerRatingSummary(ownerUsername);
 
             errorLabel.setText("");
@@ -214,6 +218,43 @@ public class AdvertisementDetailsController {
         if (isAdmin && DELETABLE_STATUSES.contains(status)) {
             setVisible(deleteButton, true);
         }
+    }
+
+    /**
+     * Per the spec's "start a conversation with the seller" scenario,
+     * this lives right here on the ad details page. Looks through the
+     * caller's own conversations (GET /api/conversations) for one already
+     * about this ad — if found, the button just opens it (no duplicate
+     * conversation is ever created, since ChatService#messageSeller reuses
+     * the existing one anyway; checking here up front just avoids
+     * re-prompting for a message when there's already a thread to open).
+     * Hidden entirely for the ad's own owner, same restriction
+     * ChatService#messageSeller enforces server-side.
+     */
+    private void configureMessagingButton(boolean loggedIn, boolean isOwner) {
+        existingConversationId = null;
+        if (!loggedIn || isOwner) {
+            setVisible(messageSellerButton, false);
+            return;
+        }
+
+        try {
+            for (JsonNode conversation : apiClient.getMyConversations()) {
+                if (conversation.path("advertisementId").asLong() == selectedAdvertisementId) {
+                    existingConversationId = conversation.path("id").asLong();
+                    break;
+                }
+            }
+        } catch (IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            // Non-fatal: worst case the button just offers to start a new
+            // message instead of jumping straight to an existing thread.
+        }
+
+        messageSellerButton.setText(existingConversationId != null ? "View Conversation" : "Message Seller");
+        setVisible(messageSellerButton, true);
     }
 
     private void setVisible(javafx.scene.Node node, boolean visible) {
@@ -343,6 +384,48 @@ public class AdvertisementDetailsController {
             Main.switchScene("/view/seller-profile.fxml");
         } catch (IOException e) {
             errorLabel.setText("Could not open the seller's profile.");
+        }
+    }
+
+    /**
+     * Opens the existing conversation about this ad if
+     * {@link #configureMessagingButton} found one, otherwise prompts for
+     * the first message and starts one — POST
+     * /api/advertisements/{id}/messages both creates the conversation
+     * and sends the message in one call, and its response tells us the
+     * conversationId to open next.
+     */
+    @FXML
+    private void handleMessageSeller() {
+        if (existingConversationId != null) {
+            ChatDetailController.setConversationId(existingConversationId);
+            try {
+                Main.switchScene("/view/chat-detail.fxml");
+            } catch (IOException e) {
+                errorLabel.setText("Could not open the conversation.");
+            }
+            return;
+        }
+
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Message Seller");
+        dialog.setHeaderText("Send a message to " + ownerUsername + " about this advertisement.");
+        dialog.setContentText("Message:");
+
+        Optional<String> result = dialog.showAndWait();
+        if (result.isEmpty() || result.get().isBlank()) {
+            return;
+        }
+
+        try {
+            JsonNode message = apiClient.messageSeller(selectedAdvertisementId, result.get().trim());
+            ChatDetailController.setConversationId(message.path("conversationId").asLong());
+            Main.switchScene("/view/chat-detail.fxml");
+        } catch (IOException e) {
+            errorLabel.setText("Could not send message: " + e.getMessage());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            errorLabel.setText("The request was interrupted.");
         }
     }
 
