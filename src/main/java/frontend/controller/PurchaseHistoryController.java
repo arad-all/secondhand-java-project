@@ -95,6 +95,66 @@ public class PurchaseHistoryController {
         }
     }
 
+    @FXML
+    private void handleRateSeller() {
+        Long id = selectedAdId();
+        if (id == null) {
+            errorLabel.setText("Select a purchased advertisement first.");
+            return;
+        }
+
+        Optional<Pair<Integer, String>> result = showRatingDialog();
+        if (result.isEmpty()) {
+            return;
+        }
+
+        try {
+            apiClient.rateSeller(id, result.get().getKey(), result.get().getValue());
+            errorLabel.setStyle("-fx-text-fill: green;");
+            errorLabel.setText("Thanks — your rating was submitted.");
+        } catch (IOException e) {
+            errorLabel.setStyle("-fx-text-fill: red;");
+            errorLabel.setText("Could not submit rating: " + e.getMessage());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            errorLabel.setText("The request was interrupted.");
+        }
+    }
+
+    /** A small inline dialog (score 1-5 + optional comment) — no separate FXML needed for something this simple. */
+    private Optional<Pair<Integer, String>> showRatingDialog() {
+        Dialog<Pair<Integer, String>> dialog = new Dialog<>();
+        dialog.setTitle("Rate Seller");
+        dialog.setHeaderText("How was your experience with this seller?");
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        ComboBox<Integer> scoreComboBox = new ComboBox<>(FXCollections.observableArrayList(1, 2, 3, 4, 5));
+        scoreComboBox.getSelectionModel().select(Integer.valueOf(5));
+        TextArea commentArea = new TextArea();
+        commentArea.setPromptText("Optional comment");
+        commentArea.setPrefRowCount(3);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(10));
+        grid.add(new Label("Score (1-5):"), 0, 0);
+        grid.add(scoreComboBox, 1, 0);
+        grid.add(new Label("Comment:"), 0, 1);
+        grid.add(commentArea, 1, 1);
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(buttonType -> {
+            if (buttonType == ButtonType.OK) {
+                Integer score = scoreComboBox.getValue();
+                return new Pair<>(score != null ? score : 5, commentArea.getText());
+            }
+            return null;
+        });
+
+        return dialog.showAndWait();
+    }
+
     private Long selectedAdId() {
         int index = purchasesListView.getSelectionModel().getSelectedIndex();
         return (index >= 0 && index < purchasedAdIds.size()) ? purchasedAdIds.get(index) : null;
