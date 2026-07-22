@@ -252,9 +252,11 @@ public class AdminPanelController {
 
     /**
      * Loads every category (top-level entries, each immediately followed
-     * by its own children) via {@link ApiClient#getCategoriesFlattened()},
-     * and also refreshes the "parent" ComboBox used when creating a new
-     * subcategory.
+     * by all of its descendants, to whatever depth the tree has) via
+     * {@link ApiClient#getCategoriesFlattened()}, and also refreshes the
+     * "parent" ComboBox used when creating a new (sub)category — an admin
+     * can pick any existing category as the parent, at any depth, not
+     * just a top-level one.
      */
     private void loadCategories() {
         try {
@@ -267,9 +269,9 @@ public class AdminPanelController {
             categoryParentIds.add(null);
 
             for (JsonNode category : categories) {
-                boolean isSubcategory = category.hasNonNull("parentId");
+                int depth = category.path("depth").asInt(0);
                 String name = category.path("name").asText("");
-                String displayName = (isSubcategory ? "\u2014 " : "") + name;
+                String displayName = "  ".repeat(depth) + (depth > 0 ? "\u2014 " : "") + name;
 
                 rows.add(displayName + "   (id " + category.path("id").asText("") + ")");
 

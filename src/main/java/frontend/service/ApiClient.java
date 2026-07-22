@@ -183,24 +183,36 @@ public class ApiClient {
     }
 
     /**
-     * Every category, top-level entries followed by their children,
-     * flattened into one array (each element still has its own
-     * {@code parentId}, so the UI can indent children under their
-     * parent). Two calls per top-level category — fine at this project's
-     * scale, and keeps the UI code from needing to know about the
-     * top-level/children split.
+     * Every category in the tree, flattened via a depth-first traversal
+     * (each category immediately followed by all of its descendants),
+     * recursing to whatever depth the tree actually has. The backend
+     * supports categories of unlimited depth — {@code Category} is
+     * self-referencing, and {@code CategoryRepository} already walks the
+     * full descendant chain for search filtering — so this must not stop
+     * at one level either.
+     * <p>
+     * Each returned node gets a synthetic {@code depth} field added
+     * (0 = top-level, 1 = its children, 2 = grandchildren, and so on) so
+     * the UI can indent consistently no matter how deep the tree goes,
+     * without every caller having to walk parentId chains itself.
      */
     public JsonNode getCategoriesFlattened() throws IOException, InterruptedException {
         ArrayNode all = objectMapper.createArrayNode();
-        JsonNode topLevel = getTopLevelCategories();
-        for (JsonNode category : topLevel) {
-            all.add(category);
-            JsonNode children = getCategoryChildren(category.get("id").asLong());
-            for (JsonNode child : children) {
-                all.add(child);
-            }
+        for (JsonNode topLevelCategory : getTopLevelCategories()) {
+            collectCategoryAndDescendants(topLevelCategory, 0, all);
         }
         return all;
+    }
+
+    private void collectCategoryAndDescendants(JsonNode category, int depth, ArrayNode accumulator)
+            throws IOException, InterruptedException {
+        if (category instanceof ObjectNode categoryObject) {
+            categoryObject.put("depth", depth);
+        }
+        accumulator.add(category);
+        for (JsonNode child : getCategoryChildren(category.get("id").asLong())) {
+            collectCategoryAndDescendants(child, depth + 1, accumulator);
+        }
     }
 
     /** Admin-only (POST /api/categories). Pass parentId=null for a top-level category. */

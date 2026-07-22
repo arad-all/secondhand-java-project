@@ -87,9 +87,9 @@ public class AdvertisementListController {
         try {
             JsonNode categories = apiClient.getCategoriesFlattened();
             for (JsonNode category : categories) {
-                boolean isSubcategory = category.hasNonNull("parentId");
-                String prefix = isSubcategory ? "\u2014 " : "";
-                options.add(prefix + category.path("name").asText(""));
+                int depth = category.path("depth").asInt(0);
+                String name = category.path("name").asText("");
+                options.add("  ".repeat(depth) + (depth > 0 ? "\u2014 " : "") + name);
                 categoryIds.add(category.path("id").asLong());
             }
         } catch (IOException | InterruptedException e) {
