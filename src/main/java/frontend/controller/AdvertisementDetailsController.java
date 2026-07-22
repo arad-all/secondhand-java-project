@@ -129,6 +129,7 @@ public class AdvertisementDetailsController {
             configureFavoriteButton(loggedIn);
             configureOwnerButtons(isOwner, status);
             configureAdminButtons(isAdmin, status);
+            loadSellerRatingSummary(ownerUsername);
 
             errorLabel.setText("");
         } catch (IOException e) {
@@ -136,6 +137,38 @@ public class AdvertisementDetailsController {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             errorLabel.setText("Loading advertisement was interrupted.");
+        }
+    }
+
+    /**
+     * Per the project spec's "view advertisement details" scenario, the
+     * seller's average rating is shown right on this page (the full
+     * review list lives on the dedicated seller-profile page instead —
+     * see {@link #handleViewSellerProfile}). Resolves the seller's
+     * numeric id from their username first, since that's all an
+     * {@code AdvertisementDetailResponse} carries.
+     */
+    private void loadSellerRatingSummary(String ownerUsername) {
+        try {
+            JsonNode seller = apiClient.getUserByUsername(ownerUsername);
+            Long sellerId = seller.path("id").asLong();
+
+            JsonNode ratings = apiClient.getSellerRatings(sellerId);
+            long total = ratings.path("totalRatings").asLong(0);
+            double average = ratings.path("averageScore").asDouble(0.0);
+
+            sellerRatingLabel.setText(total == 0
+                    ? "Seller rating: no ratings yet"
+                    : String.format("Seller rating: %.1f / 5 (%d rating%s)", average, total, total == 1 ? "" : "s"));
+            setVisible(sellerRatingLabel, true);
+            setVisible(viewSellerProfileButton, true);
+        } catch (IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            // Non-fatal: just hide these rather than blocking the whole page.
+            setVisible(sellerRatingLabel, false);
+            setVisible(viewSellerProfileButton, false);
         }
     }
 
