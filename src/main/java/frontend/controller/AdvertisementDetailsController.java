@@ -334,6 +334,19 @@ public class AdvertisementDetailsController {
     }
 
     @FXML
+    private void handleViewSellerProfile() {
+        if (ownerUsername == null || ownerUsername.isBlank()) {
+            return;
+        }
+        SellerProfileController.setSellerUsername(ownerUsername);
+        try {
+            Main.switchScene("/view/seller-profile.fxml");
+        } catch (IOException e) {
+            errorLabel.setText("Could not open the seller's profile.");
+        }
+    }
+
+    @FXML
     private void handleBack() {
         try {
             Main.switchScene("/view/advertisement-list.fxml");
