@@ -24,9 +24,10 @@ public interface RatingRepository extends JpaRepository<Rating, Long> {
      * and which ad it was for, so {@code buyer}, {@code seller}, and
      * {@code advertisement} — everything {@code RatingMapper#toResponse}
      * needs — are fetched eagerly to avoid an N+1 lazy load per row.
+     * Results are ordered newest first for the seller profile.
      */
     @EntityGraph(attributePaths = {"buyer", "seller", "advertisement"})
-    List<Rating> findBySellerId(Long sellerId);
+    List<Rating> findBySellerIdOrderByCreatedAtDesc(Long sellerId);
 
     long countBySellerId(Long sellerId);
 

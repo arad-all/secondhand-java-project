@@ -12,6 +12,7 @@ public record AdvertisementSummaryResponse(
         BigDecimal price,
         String cityName,
         String categoryName,
-        String status
+        String status,
+        Double sellerRating
 ) {
 }

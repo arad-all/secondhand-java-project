@@ -15,6 +15,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.Formula;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -43,6 +44,16 @@ public class Advertisement extends BaseEntity {
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal price;
+
+    /**
+     * Current average rating of this advertisement's seller. This is a
+     * read-only derived value rather than duplicated state, so existing and
+     * newly submitted ratings are reflected immediately and can be used by
+     * Spring Data's database-level sorting before pagination is applied.
+     * Sellers without ratings sort as rating 0.
+     */
+    @Formula("(SELECT COALESCE(AVG(r.score), 0.0) FROM ratings r WHERE r.seller_id = owner_id)")
+    private Double sellerRating;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

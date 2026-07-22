@@ -77,7 +77,7 @@ public class ApiClient {
      * can be null/blank to skip that filter. Returns a Spring Data Page —
      * callers should read the "content" field for the list of results.
      *
-     * @param sortField backend field name to sort by, e.g. "createdAt" or "price", or null for default order
+     * @param sortField backend field name to sort by: "createdAt", "price", or "sellerRating"; null for default order
      * @param sortDir   "asc" or "desc"; ignored if sortField is null
      */
     public JsonNode searchAdvertisements(String keyword, Long categoryId, Long cityId,

@@ -45,7 +45,7 @@ public class RatingService {
             throw new ResourceNotFoundException("User with id " + sellerId + " not found.");
         }
 
-        var ratings = ratingRepository.findBySellerId(sellerId).stream()
+        var ratings = ratingRepository.findBySellerIdOrderByCreatedAtDesc(sellerId).stream()
                 .map(RatingMapper::toResponse)
                 .toList();
         Double averageScore = ratingRepository.findAverageScoreBySellerId(sellerId);

@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * UI logic for the advertisement browse/search page. Filters are sent to
@@ -57,9 +58,14 @@ public class AdvertisementListController {
     private final List<Long> categoryIds = new ArrayList<>();
     private final List<Long> cityIds = new ArrayList<>();
 
-    private static final String[] SORT_LABELS = {"Newest first", "Price: low to high", "Price: high to low"};
-    private static final String[] SORT_FIELDS = {"createdAt", "price", "price"};
-    private static final String[] SORT_DIRECTIONS = {"desc", "asc", "desc"};
+    private static final String[] SORT_LABELS = {
+            "Newest first",
+            "Price: low to high",
+            "Price: high to low",
+            "Seller rating: high to low"
+    };
+    private static final String[] SORT_FIELDS = {"createdAt", "price", "price", "sellerRating"};
+    private static final String[] SORT_DIRECTIONS = {"desc", "asc", "desc", "desc"};
 
     @FXML
     private void initialize() {
@@ -181,8 +187,10 @@ public class AdvertisementListController {
             String price = ad.path("price").asText("");
             String city = ad.path("cityName").asText("");
             String status = ad.path("status").asText("");
+            String sellerRating = String.format(Locale.ROOT, "%.1f", ad.path("sellerRating").asDouble(0.0));
 
-            rows.add(title + "   |   " + price + "   |   " + city + "   |   " + status);
+            rows.add(title + "   |   " + price + "   |   " + city
+                    + "   |   Seller rating: " + sellerRating + "   |   " + status);
         }
 
         advertisementListView.setItems(rows);

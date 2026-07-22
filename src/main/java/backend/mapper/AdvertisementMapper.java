@@ -31,7 +31,8 @@ public final class AdvertisementMapper {
                 ad.getPrice(),
                 ad.getCity().getName(),
                 ad.getCategory().getName(),
-                ad.getStatus().name());
+                ad.getStatus().name(),
+                ad.getSellerRating());
     }
 
     /**
