@@ -114,6 +114,11 @@ public class ApiClient {
         return sendJsonRequest("GET", "/api/advertisements/my?" + PAGE_SIZE_PARAM + query, null);
     }
 
+    /** Advertisements the logged-in caller has purchased (i.e. was recorded as buyer on). Returns a Page. */
+    public JsonNode getPurchasedAdvertisements() throws IOException, InterruptedException {
+        return sendJsonRequest("GET", "/api/advertisements/purchased?" + PAGE_SIZE_PARAM, null);
+    }
+
     public JsonNode getAdvertisementById(Long id) throws IOException, InterruptedException {
         return sendJsonRequest("GET", "/api/advertisements/" + id, null);
     }
