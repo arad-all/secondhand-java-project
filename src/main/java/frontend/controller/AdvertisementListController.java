@@ -257,6 +257,15 @@ public class AdvertisementListController {
     }
 
     @FXML
+    private void handleGoToMessages() {
+        try {
+            Main.switchScene("/view/chat-list.fxml");
+        } catch (IOException e) {
+            errorLabel.setText("Could not open messages.");
+        }
+    }
+
+    @FXML
     private void handleGoToAdminPanel() {
         try {
             Main.switchScene("/view/admin-panel.fxml");
