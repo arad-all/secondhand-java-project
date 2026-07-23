@@ -15,20 +15,20 @@
             <padding>
                 <Insets bottom="10.0" left="15.0" right="15.0" top="15.0"/>
             </padding>
-            <Label style="-fx-font-size: 22px; -fx-font-weight: bold;" text="Messages"/>
-            <HBox spacing="10">
+            <Label styleClass="page-header" text="Messages"/>
+            <HBox alignment="CENTER_LEFT" spacing="10">
                 <Button onAction="#handleOpenSelected" text="Open Conversation"/>
                 <Button onAction="#handleRefresh" text="Refresh"/>
-                <Button onAction="#handleBack" text="Back to Browse"/>
+                <Button onAction="#handleBack" styleClass="button-link" text="&#8592; Back to Browse"/>
             </HBox>
-            <Label text="Double-click a conversation to open it."/>
+            <Label styleClass="subtle-label" text="Double-click a conversation to open it."/>
         </VBox>
     </top>
     <center>
         <ListView fx:id="conversationsListView" BorderPane.alignment="CENTER"/>
     </center>
     <bottom>
-        <Label fx:id="errorLabel" style="-fx-text-fill: red;" wrapText="true">
+        <Label fx:id="errorLabel" styleClass="error-label" wrapText="true">
             <BorderPane.margin>
                 <Insets bottom="10.0" left="15.0" right="15.0" top="5.0"/>
             </BorderPane.margin>

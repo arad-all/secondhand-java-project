@@ -12,15 +12,15 @@
 <BorderPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
             fx:controller="frontend.controller.ChatDetailController">
     <top>
-        <VBox spacing="10">
+        <VBox spacing="8">
             <padding>
                 <Insets bottom="10.0" left="15.0" right="15.0" top="15.0"/>
             </padding>
-            <Label fx:id="titleLabel" style="-fx-font-size: 20px; -fx-font-weight: bold;" wrapText="true"/>
-            <Label fx:id="participantsLabel"/>
+            <Button onAction="#handleBack" styleClass="button-link" text="&#8592; Back to Messages"/>
+            <Label fx:id="titleLabel" styleClass="page-header" wrapText="true"/>
+            <Label fx:id="participantsLabel" styleClass="subtle-label"/>
             <HBox spacing="10">
                 <Button onAction="#handleRefresh" text="Refresh"/>
-                <Button onAction="#handleBack" text="Back to Messages"/>
             </HBox>
         </VBox>
     </top>
@@ -28,16 +28,16 @@
         <ListView fx:id="messagesListView" BorderPane.alignment="CENTER"/>
     </center>
     <bottom>
-        <VBox spacing="8">
+        <VBox spacing="8" styleClass="chat-input-bar">
             <padding>
-                <Insets bottom="15.0" left="15.0" right="15.0" top="10.0"/>
+                <Insets bottom="12.0" left="15.0" right="15.0" top="10.0"/>
             </padding>
             <HBox spacing="10">
                 <TextField fx:id="messageInputField" onAction="#handleSend" promptText="Type a message..."
                            HBox.hgrow="ALWAYS"/>
-                <Button onAction="#handleSend" text="Send"/>
+                <Button onAction="#handleSend" styleClass="button-primary" text="Send"/>
             </HBox>
-            <Label fx:id="errorLabel" style="-fx-text-fill: red;" wrapText="true"/>
+            <Label fx:id="errorLabel" styleClass="error-label" wrapText="true"/>
         </VBox>
     </bottom>
 </BorderPane>
