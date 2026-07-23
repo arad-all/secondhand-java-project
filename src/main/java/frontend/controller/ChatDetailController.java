@@ -13,6 +13,7 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 
 import java.io.IOException;
 
@@ -164,11 +165,12 @@ public class ChatDetailController {
     }
 
     /**
-     * Right-aligned + highlighted for the current user's own messages,
-     * left-aligned + neutral for the other participant's — a plain text
-     * prefix ("You: ..." vs "them: ...") would technically distinguish
-     * senders too, but this reads at a glance the way a real chat app
-     * does, which is what "clearly distinguish" calls for.
+     * Right-aligned + blue for the current user's own messages,
+     * left-aligned + neutral for the other participant's — reads at a
+     * glance the way a real chat app does. Sender name sits above the
+     * message body, and the timestamp is tucked in the bottom-right of
+     * the bubble, both styled via app.css (see the CHAT STYLES section)
+     * rather than inline — keeps this class free of style strings.
      */
     private static final class MessageCell extends ListCell<JsonNode> {
         @Override
@@ -187,12 +189,21 @@ public class ChatDetailController {
             String time = sentAt.length() >= 16 ? sentAt.substring(0, 16).replace('T', ' ') : sentAt;
             boolean mine = sender.equals(SessionManager.getInstance().getUsername());
 
-            Label bubble = new Label((mine ? "You" : sender) + " · " + time + "\n" + content);
-            bubble.setWrapText(true);
-            bubble.setMaxWidth(360);
-            bubble.setStyle(mine
-                    ? "-fx-background-color: #DCF8C6; -fx-background-radius: 10; -fx-padding: 8;"
-                    : "-fx-background-color: #F1F0F0; -fx-background-radius: 10; -fx-padding: 8;");
+            Label senderLabel = new Label(mine ? "You" : sender);
+            senderLabel.getStyleClass().add("chat-bubble-sender");
+
+            Label contentLabel = new Label(content);
+            contentLabel.setWrapText(true);
+            contentLabel.setMaxWidth(340);
+
+            Label timeLabel = new Label(time);
+            timeLabel.getStyleClass().add("chat-bubble-time");
+            HBox timeRow = new HBox(timeLabel);
+            timeRow.setAlignment(Pos.CENTER_RIGHT);
+
+            VBox bubble = new VBox(3, senderLabel, contentLabel, timeRow);
+            bubble.getStyleClass().add(mine ? "chat-bubble-mine" : "chat-bubble-other");
+            bubble.setMaxWidth(380);
 
             HBox row = new HBox(bubble);
             row.setAlignment(mine ? Pos.CENTER_RIGHT : Pos.CENTER_LEFT);

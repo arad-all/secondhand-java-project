@@ -25,7 +25,7 @@
         </VBox>
     </top>
     <center>
-        <ListView fx:id="conversationsListView" BorderPane.alignment="CENTER"/>
+        <ListView fx:id="conversationsListView" styleClass="chat-conversations-list" BorderPane.alignment="CENTER"/>
     </center>
     <bottom>
         <Label fx:id="errorLabel" styleClass="error-label" wrapText="true">

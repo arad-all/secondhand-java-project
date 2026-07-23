@@ -25,7 +25,7 @@
         </VBox>
     </top>
     <center>
-        <ListView fx:id="messagesListView" BorderPane.alignment="CENTER"/>
+        <ListView fx:id="messagesListView" styleClass="chat-messages-list" BorderPane.alignment="CENTER"/>
     </center>
     <bottom>
         <VBox spacing="8" styleClass="chat-input-bar">
