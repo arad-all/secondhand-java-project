@@ -9,7 +9,10 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Circle?>
+<?import javafx.scene.shape.SVGPath?>
 
 <BorderPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
             fx:controller="frontend.controller.AdvertisementListController">
@@ -20,7 +23,24 @@
             </padding>
 
             <HBox alignment="CENTER_LEFT" spacing="10">
-                <Label styleClass="page-header" text="Advertisements"/>
+                <Button fx:id="myProfileButton" onAction="#handleGoToMyProfile" styleClass="mini-profile-card">
+                    <graphic>
+                        <HBox alignment="CENTER_LEFT" spacing="10">
+                            <StackPane prefHeight="40" prefWidth="40">
+                                <Circle fill="#f3f4f6" radius="18" stroke="#d1d5db" strokeWidth="1.5"/>
+                                <SVGPath content="M18 18c3.315 0 6-2.685 6-6s-2.685-6-6-6-6 2.685-6 6 2.685 6 6 6zm0 3c-4.005 0-12 2.01-12 6v3h24v-3c0-3.99-7.995-6-12-6z" fill="#9ca3af"/>
+                            </StackPane>
+                            <VBox alignment="CENTER_LEFT" spacing="3">
+                                <Label fx:id="myProfileUsernameLabel" styleClass="mini-profile-username"/>
+                                <HBox alignment="CENTER_LEFT" spacing="6">
+                                    <Label fx:id="myProfileRatingStarLabel" managed="false" styleClass="ad-card-rating-star" visible="false"/>
+                                    <Label fx:id="myProfileRatingLabel" styleClass="seller-rating-label"/>
+                                </HBox>
+                            </VBox>
+                        </HBox>
+                    </graphic>
+                </Button>
+
                 <HBox fx:id="navBox" alignment="CENTER_RIGHT" spacing="8" HBox.hgrow="ALWAYS">
                     <Button onAction="#handleGoToMyAdvertisements" text="My Advertisements"/>
                     <Button onAction="#handleGoToFavorites" text="Favorites"/>
