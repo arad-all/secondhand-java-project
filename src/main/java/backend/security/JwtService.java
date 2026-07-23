@@ -23,10 +23,10 @@ import java.util.Date;
  * (see {@code SecurityConfig}'s {@code SessionCreationPolicy.STATELESS}).
  * <p>
  * Two things use this class: {@code AuthService.login(...)} calls
- * {@link #generateToken(User)} to hand back a token; the JWT filter (added
- * in Part 3) will call {@link #parseClaims(String)} on every subsequent
- * request to figure out who's calling, without trusting anything the
- * client merely claims about itself.
+ * {@link #generateToken(User)} to hand back a token; the
+ * {@link JwtAuthenticationFilter} calls {@link #parseClaims(String)} on
+ * every subsequent request to figure out who's calling, without trusting
+ * anything the client merely claims about itself.
  */
 @Component
 public class JwtService {

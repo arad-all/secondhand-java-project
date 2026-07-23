@@ -36,16 +36,16 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Core advertisement business logic (plan §1, "AdvertisementService — the
- * core of the app"). This slice covers public browsing (search, getById)
- * and owner actions (create, getMyAdvertisements, markAsSold,
- * deleteAdvertisement); moderation (approve/reject/listPendingReview) is a
- * later phase.
+ * Core advertisement business logic. Covers public browsing (search,
+ * getById), owner actions (create, getMyAdvertisements, markAsSold,
+ * deleteAdvertisement), image management (addImages, removeImage,
+ * loadImage), admin moderation (approve, reject, listPendingReview),
+ * and editing.
  * <p>
  * Status lifecycle enforced by the methods below:
  * <pre>
- * PENDING_REVIEW --(admin approve)--&gt; ACTIVE            [later phase]
- * PENDING_REVIEW --(admin reject)---&gt; REJECTED           [later phase]
+ * PENDING_REVIEW --(admin approve)--&gt; ACTIVE
+ * PENDING_REVIEW --(admin reject)---&gt; REJECTED
  * ACTIVE --(owner marks sold)-------&gt; SOLD
  * ACTIVE/PENDING_REVIEW/REJECTED --(owner or admin deletes)--&gt; DELETED
  * </pre>
@@ -53,10 +53,9 @@ import java.util.Set;
  * already-DELETED or SOLD ad) is rejected with
  * {@link InvalidStateTransitionException}.
  * <p>
- * Phase 1 scope (plan §0.2): {@link #create} only ever instantiates the
- * base {@link Advertisement} entity — VehicleAdvertisement /
- * ElectronicsAdvertisement / RealEstateAdvertisement are intentionally
- * left unused here and picked up in a later phase.
+ * Advertisement subtypes (VehicleAdvertisement, ElectronicsAdvertisement,
+ * RealEstateAdvertisement) are available in the model layer but not yet
+ * used — new ads always instantiate the base {@link Advertisement} entity.
  */
 @Service
 @RequiredArgsConstructor

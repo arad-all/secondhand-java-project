@@ -67,6 +67,7 @@ bin/
 ### OS-generated files ###
 .DS_Store
 Thumbs.db
+nul
 
 ### Uploaded advertisement images (if stored on local disk, not in DB) ###
 # Adjust this path to wherever your AdvertisementImage.imagePath actually

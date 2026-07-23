@@ -20,9 +20,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import java.io.IOException;
 
 /**
- * Security configuration — Part 3 (real wiring) version, extended
- * alongside the Part 4/5 controllers with the specific public-read
- * exceptions those endpoints need.
+ * Security configuration — sets up stateless JWT authentication,
+ * role-based access, and public-read exceptions for browsing endpoints.
  * <p>
  * Baseline rule: {@code /api/auth/**} is public (you can't be
  * authenticated before you've logged in), {@code /api/admin/**} requires
