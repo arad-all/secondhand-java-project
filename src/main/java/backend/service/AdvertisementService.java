@@ -469,6 +469,38 @@ public class AdvertisementService {
     }
 
     /**
+     * Removes a single image from an advertisement. Mirrors {@link #addImages}'s
+     * owner-only / {@link #DELETABLE_STATUSES}-only rules — there's no
+     * legitimate reason for anyone but the owner to be curating another
+     * user's photos, and an already-SOLD/DELETED listing shouldn't be
+     * edited further. The database row is removed first (via
+     * {@code orphanRemoval} on {@link Advertisement#getImages()}); the
+     * on-disk file is only deleted once that's confirmed to belong to
+     * this advertisement, same trust order {@link #loadImage} uses.
+     */
+    @Transactional
+    public AdvertisementDetailResponse removeImage(Long adId, String filename, Long currentUserId) {
+        Advertisement ad = advertisementRepository.findById(adId)
+                .orElseThrow(() -> notFound(adId));
+
+        if (!ad.getOwner().getId().equals(currentUserId)) {
+            throw new ForbiddenActionException("Only the ad's owner can remove images from this advertisement.");
+        }
+        if (!DELETABLE_STATUSES.contains(ad.getStatus())) {
+            throw new InvalidStateTransitionException(
+                    "Cannot remove images from advertisement with status " + ad.getStatus() + ".");
+        }
+
+        AdvertisementImage image = advertisementImageRepository.findByAdvertisementIdAndImagePath(adId, filename)
+                .orElseThrow(() -> new ResourceNotFoundException("Image not found."));
+
+        ad.getImages().remove(image);
+        fileStorageService.delete(adId, filename);
+
+        return AdvertisementMapper.toDetail(ad);
+    }
+
+    /**
      * Resolves a stored image back to a readable {@link Resource} for the
      * download endpoint. Confirms the filename is actually recorded
      * against this advertisement (not just present somewhere on disk)

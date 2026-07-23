@@ -210,4 +210,16 @@ public class AdvertisementController {
         MediaType mediaType = MediaTypeFactory.getMediaType(resource).orElse(MediaType.APPLICATION_OCTET_STREAM);
         return ResponseEntity.ok().contentType(mediaType).body(resource);
     }
+
+    /**
+     * Removes one image from the caller's own advertisement. Owner-only,
+     * same as {@link #addImages}; see {@code AdvertisementService#removeImage}.
+     */
+    @DeleteMapping("/{id}/images/{filename}")
+    public AdvertisementDetailResponse removeImage(
+            @PathVariable Long id,
+            @PathVariable String filename,
+            @AuthenticationPrincipal AuthenticatedUser user) {
+        return advertisementService.removeImage(id, filename, user.userId());
+    }
 }
