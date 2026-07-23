@@ -4,8 +4,9 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
@@ -16,21 +17,27 @@
             <padding>
                 <Insets bottom="10.0" left="15.0" right="15.0" top="15.0"/>
             </padding>
-            <Label style="-fx-font-size: 22px; -fx-font-weight: bold;" text="My Advertisements"/>
-            <HBox spacing="10">
+            <Label styleClass="page-header" text="My Advertisements"/>
+            <HBox alignment="CENTER_LEFT" spacing="10">
                 <ComboBox fx:id="statusFilterComboBox" prefWidth="180"/>
-                <Button onAction="#handleFilterChanged" text="Apply Filter"/>
+                <Button onAction="#handleFilterChanged" styleClass="button-primary" text="Apply Filter"/>
                 <Button onAction="#handleRefresh" text="Refresh"/>
                 <Button onAction="#handleBack" text="Back to Browse"/>
             </HBox>
-            <Label text="Double-click an advertisement to view or manage it."/>
+            <Label styleClass="subtle-label" text="Click an advertisement to view or manage it."/>
         </VBox>
     </top>
     <center>
-        <ListView fx:id="advertisementListView" BorderPane.alignment="CENTER"/>
+        <ScrollPane fitToWidth="true" style="-fx-background-color: transparent;" BorderPane.alignment="CENTER">
+            <FlowPane fx:id="cardGrid" hgap="14" vgap="14">
+                <padding>
+                    <Insets bottom="15.0" left="15.0" right="15.0" top="5.0"/>
+                </padding>
+            </FlowPane>
+        </ScrollPane>
     </center>
     <bottom>
-        <Label fx:id="errorLabel" style="-fx-text-fill: red;" wrapText="true">
+        <Label fx:id="errorLabel" styleClass="error-label" wrapText="true">
             <BorderPane.margin>
                 <Insets bottom="10.0" left="15.0" right="15.0" top="5.0"/>
             </BorderPane.margin>
