@@ -175,6 +175,36 @@
     -fx-border-color: #1d4ed8;
 }
 
+/* ── Mini Profile Card (top-left "my profile" button) ───────────── */
+
+.mini-profile-card {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-border-color: #e5e7eb;
+    -fx-border-width: 1;
+    -fx-cursor: hand;
+    -fx-padding: 6 16 6 8;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 6, 0, 0, 2);
+}
+
+.mini-profile-card:hover {
+    -fx-background-color: white;
+    -fx-border-color: #93c5fd;
+    -fx-border-width: 2;
+    -fx-effect: dropshadow(gaussian, rgba(59,130,246,0.15), 12, 0, 0, 4);
+}
+
+.mini-profile-card:pressed {
+    -fx-background-color: #f9fafb;
+}
+
+.mini-profile-username {
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-text-fill: #111827;
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    FORM INPUTS
    ═══════════════════════════════════════════════════════════════════ */
@@ -374,14 +404,6 @@
 
 .seller-rating-label {
     -fx-text-fill: #6b7280;
-    -fx-font-size: 13px;
-}
-
-/* ── Detail Field Labels (City, Category, Status) ────────────── */
-
-.detail-field-label {
-    -fx-font-weight: bold;
-    -fx-text-fill: #374151;
     -fx-font-size: 13px;
 }
 

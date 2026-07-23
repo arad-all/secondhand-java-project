@@ -48,6 +48,12 @@ public class AdvertisementListController {
     @FXML
     private Button adminPanelButton;
     @FXML
+    private Label myProfileUsernameLabel;
+    @FXML
+    private Label myProfileRatingStarLabel;
+    @FXML
+    private Label myProfileRatingLabel;
+    @FXML
     private Label errorLabel;
 
     private final ApiClient apiClient = new ApiClient();
@@ -69,11 +75,48 @@ public class AdvertisementListController {
         adminPanelButton.setVisible(SessionManager.getInstance().isAdmin());
         adminPanelButton.setManaged(SessionManager.getInstance().isAdmin());
 
+        loadMyProfileCard();
         loadCategoryOptions();
         loadCityOptions();
         loadSortOptions();
 
         handleSearch();
+    }
+
+    /**
+     * Fills in the top-left "my profile" card: same silhouette icon as the
+     * seller info block on the advertisement details page, the current
+     * user's username, and the same "★ avg" rating format used there —
+     * just without the "(N ratings)" count, since this is a glanceable
+     * summary rather than the full rating breakdown shown on the profile
+     * page itself.
+     */
+    private void loadMyProfileCard() {
+        myProfileUsernameLabel.setText(SessionManager.getInstance().getUsername());
+
+        try {
+            JsonNode ratingsResponse = apiClient.getSellerRatings(SessionManager.getInstance().getUserId());
+            long total = ratingsResponse.path("totalRatings").asLong(0);
+            double average = ratingsResponse.path("averageScore").asDouble(0.0);
+
+            if (total == 0) {
+                myProfileRatingStarLabel.setVisible(false);
+                myProfileRatingStarLabel.setManaged(false);
+                myProfileRatingLabel.setText("No ratings yet");
+            } else {
+                myProfileRatingStarLabel.setText("★");
+                myProfileRatingStarLabel.setVisible(true);
+                myProfileRatingStarLabel.setManaged(true);
+                myProfileRatingLabel.setText(String.format("%.1f", average));
+            }
+        } catch (IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            myProfileRatingStarLabel.setVisible(false);
+            myProfileRatingStarLabel.setManaged(false);
+            myProfileRatingLabel.setText("No ratings yet");
+        }
     }
 
     private void loadCategoryOptions() {
@@ -242,6 +285,16 @@ public class AdvertisementListController {
             Main.switchScene("/view/chat-list.fxml");
         } catch (IOException e) {
             errorLabel.setText("Could not open messages.");
+        }
+    }
+
+    @FXML
+    private void handleGoToMyProfile() {
+        SellerProfileController.setSellerUsername(SessionManager.getInstance().getUsername());
+        try {
+            Main.switchScene("/view/seller-profile.fxml");
+        } catch (IOException e) {
+            errorLabel.setText("Could not open your profile.");
         }
     }
 
