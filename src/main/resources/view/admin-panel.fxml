@@ -68,7 +68,6 @@
                         <Button onAction="#handleCreateCategory" text="Create Category"/>
                         <Button onAction="#handleRefreshCategories" text="Refresh"/>
                     </HBox>
-                    <Label text="Deleting categories is not yet supported by the backend."/>
                     <ListView fx:id="categoriesListView" VBox.vgrow="ALWAYS"/>
                 </VBox>
             </Tab>
@@ -83,7 +82,6 @@
                         <Button onAction="#handleCreateCity" text="Create City"/>
                         <Button onAction="#handleRefreshCities" text="Refresh"/>
                     </HBox>
-                    <Label text="Deleting cities is not yet supported by the backend."/>
                     <ListView fx:id="citiesListView" VBox.vgrow="ALWAYS"/>
                 </VBox>
             </Tab>
