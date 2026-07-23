@@ -4,6 +4,7 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ListView?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
 <VBox spacing="12" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
@@ -24,10 +25,13 @@
         <Label fx:id="usernameLabel" styleClass="section-header"/>
         <Label fx:id="fullNameLabel"/>
         <Label fx:id="phoneLabel"/>
-        <Label fx:id="ratingSummaryLabel" styleClass="ad-card-price"/>
+        <HBox alignment="CENTER_LEFT" spacing="6">
+            <Label fx:id="ratingStarLabel" managed="false" styleClass="ad-card-rating-star" visible="false"/>
+            <Label fx:id="ratingSummaryLabel" styleClass="seller-rating-label"/>
+        </HBox>
 
         <Label styleClass="section-header" text="Reviews"/>
-        <ListView fx:id="reviewsListView" prefHeight="200" VBox.vgrow="ALWAYS"/>
+        <ListView fx:id="reviewsListView" prefHeight="320" styleClass="reviews-list-view" VBox.vgrow="ALWAYS"/>
     </VBox>
 
     <Label fx:id="errorLabel" styleClass="error-label" wrapText="true"/>

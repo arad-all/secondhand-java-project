@@ -90,6 +90,8 @@ public class AdvertisementDetailsController {
     @FXML
     private Label errorLabel;
     @FXML
+    private Label sellerRatingStarLabel;
+    @FXML
     private ImageView mainImageView;
     @FXML
     private Label noImagesLabel;
@@ -129,12 +131,12 @@ public class AdvertisementDetailsController {
             titleLabel.setText(ad.path("title").asText(""));
             descriptionLabel.setText(ad.path("description").asText(""));
             priceLabel.setText("Price: " + ad.path("price").asText(""));
-            cityLabel.setText("City: " + ad.path("cityName").asText(""));
-            categoryLabel.setText("Category: " + ad.path("categoryName").asText(""));
+            cityLabel.setText(ad.path("cityName").asText(""));
+            categoryLabel.setText(ad.path("categoryName").asText(""));
             String status = ad.path("status").asText("");
-            statusLabel.setText("Status: " + status);
+            statusLabel.setText(status);
             ownerUsername = ad.path("ownerUsername").asText("");
-            ownerLabel.setText("Seller: " + ownerUsername);
+            ownerLabel.setText(ownerUsername);
 
             String buyerUsername = ad.hasNonNull("buyerUsername") ? ad.get("buyerUsername").asText() : null;
             this.buyerUsername = buyerUsername;
@@ -283,9 +285,14 @@ public class AdvertisementDetailsController {
             long total = ratings.path("totalRatings").asLong(0);
             double average = ratings.path("averageScore").asDouble(0.0);
 
-            sellerRatingLabel.setText(total == 0
-                    ? "Seller rating: no ratings yet"
-                    : String.format("Seller rating: %.1f / 5 (%d rating%s)", average, total, total == 1 ? "" : "s"));
+            if (total == 0) {
+                setVisible(sellerRatingStarLabel, false);
+                sellerRatingLabel.setText("No ratings yet");
+            } else {
+                sellerRatingStarLabel.setText("★");
+                sellerRatingLabel.setText(String.format("%.1f (%d rating%s)", average, total, total == 1 ? "" : "s"));
+                setVisible(sellerRatingStarLabel, true);
+            }
             setVisible(sellerRatingLabel, true);
             setVisible(viewSellerProfileButton, true);
 
@@ -305,6 +312,7 @@ public class AdvertisementDetailsController {
             }
             // Non-fatal: just hide these rather than blocking the whole page.
             setVisible(sellerRatingLabel, false);
+            setVisible(sellerRatingStarLabel, false);
             setVisible(viewSellerProfileButton, false);
         }
     }

@@ -6,8 +6,12 @@ import frontend.service.ApiClient;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 
 import java.io.IOException;
 
@@ -30,9 +34,11 @@ public class SellerProfileController {
     @FXML
     private Label phoneLabel;
     @FXML
+    private Label ratingStarLabel;
+    @FXML
     private Label ratingSummaryLabel;
     @FXML
-    private ListView<String> reviewsListView;
+    private ListView<JsonNode> reviewsListView;
     @FXML
     private Label errorLabel;
 
@@ -44,6 +50,9 @@ public class SellerProfileController {
 
     @FXML
     private void initialize() {
+        reviewsListView.setCellFactory(list -> new ReviewCell());
+        reviewsListView.setPlaceholder(new Label("No reviews yet."));
+
         if (sellerUsername == null || sellerUsername.isBlank()) {
             errorLabel.setText("No seller selected.");
             return;
@@ -60,21 +69,25 @@ public class SellerProfileController {
             JsonNode ratingsResponse = apiClient.getSellerRatings(sellerId);
             long total = ratingsResponse.path("totalRatings").asLong(0);
             double average = ratingsResponse.path("averageScore").asDouble(0.0);
-            ratingSummaryLabel.setText(total == 0
-                    ? "Rating: no ratings yet"
-                    : String.format("Rating: %.1f / 5 (%d rating%s)", average, total, total == 1 ? "" : "s"));
 
-            ObservableList<String> reviewRows = FXCollections.observableArrayList();
-            for (JsonNode rating : ratingsResponse.path("ratings")) {
-                int score = rating.path("score").asInt();
-                String comment = rating.path("comment").asText("");
-                String buyer = rating.path("buyerUsername").asText("");
-                String adTitle = rating.path("advertisementTitle").asText("");
-                String line = score + "/5 by " + buyer + " (for \"" + adTitle + "\")"
-                        + (comment.isBlank() ? "" : ": " + comment);
-                reviewRows.add(line);
+            // Same star + "avg (count)" format as the seller-rating row on the
+            // advertisement details page, for a consistent look across the app.
+            if (total == 0) {
+                ratingStarLabel.setVisible(false);
+                ratingStarLabel.setManaged(false);
+                ratingSummaryLabel.setText("No ratings yet");
+            } else {
+                ratingStarLabel.setText("★");
+                ratingStarLabel.setVisible(true);
+                ratingStarLabel.setManaged(true);
+                ratingSummaryLabel.setText(String.format("%.1f (%d rating%s)", average, total, total == 1 ? "" : "s"));
             }
-            reviewsListView.setItems(reviewRows);
+
+            ObservableList<JsonNode> reviewItems = FXCollections.observableArrayList();
+            for (JsonNode rating : ratingsResponse.path("ratings")) {
+                reviewItems.add(rating);
+            }
+            reviewsListView.setItems(reviewItems);
 
             errorLabel.setText("");
         } catch (IOException e) {
@@ -91,6 +104,57 @@ public class SellerProfileController {
             Main.switchScene("/view/advertisement-details.fxml");
         } catch (IOException e) {
             errorLabel.setText("Could not return to the advertisement.");
+        }
+    }
+
+    /**
+     * One review as a small card: a 5-star row (filled stars in the
+     * accent color, empty stars muted) with the buyer's name alongside,
+     * the advertisement it was left for underneath, and the comment (if
+     * any) below that — replaces the old single "score/5 by buyer ..."
+     * text line with something that's actually scannable.
+     */
+    private static final class ReviewCell extends ListCell<JsonNode> {
+        @Override
+        protected void updateItem(JsonNode rating, boolean empty) {
+            super.updateItem(rating, empty);
+
+            if (empty || rating == null) {
+                setText(null);
+                setGraphic(null);
+                return;
+            }
+
+            int score = Math.max(0, Math.min(5, rating.path("score").asInt()));
+            String buyer = rating.path("buyerUsername").asText("");
+            String adTitle = rating.path("advertisementTitle").asText("");
+            String comment = rating.path("comment").asText("");
+
+            Label filledStars = new Label("★".repeat(score));
+            filledStars.getStyleClass().add("ad-card-rating-star");
+            Label emptyStars = new Label("★".repeat(5 - score));
+            emptyStars.getStyleClass().add("review-star-empty");
+
+            Label buyerLabel = new Label(buyer);
+            buyerLabel.getStyleClass().add("review-buyer-label");
+
+            HBox headerRow = new HBox(8, filledStars, emptyStars, buyerLabel);
+            headerRow.setAlignment(Pos.CENTER_LEFT);
+
+            Label adTitleLabel = new Label("For \"" + adTitle + "\"");
+            adTitleLabel.getStyleClass().add("subtle-label");
+
+            VBox content = new VBox(4, headerRow, adTitleLabel);
+
+            if (!comment.isBlank()) {
+                Label commentLabel = new Label(comment);
+                commentLabel.setWrapText(true);
+                commentLabel.getStyleClass().add("review-comment-label");
+                content.getChildren().add(commentLabel);
+            }
+
+            setText(null);
+            setGraphic(content);
         }
     }
 }

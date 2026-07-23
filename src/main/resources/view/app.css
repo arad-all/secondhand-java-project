@@ -209,7 +209,27 @@
     -fx-border-color: #9ca3af;
 }
 
-/* ── ComboBox Dropdown ──────────────────────────────────────────── */
+/* ── ComboBox ───────────────────────────────────────────────────── */
+
+.combo-box {
+    -fx-background-color: white;
+    -fx-text-fill: #111827;
+}
+
+.combo-box .list-cell {
+    -fx-background-color: white;
+    -fx-text-fill: #111827;
+}
+
+.combo-box .arrow-button {
+    -fx-background-color: transparent;
+}
+
+.combo-box .arrow-button .arrow {
+    -fx-background-color: #6b7280;
+}
+
+/* ── ComboBox Dropdown Popup ────────────────────────────────────── */
 
 .combo-box-popup .list-view {
     -fx-background-color: white;
@@ -220,17 +240,20 @@
 }
 
 .combo-box-popup .list-cell {
+    -fx-background-color: white;
+    -fx-text-fill: #111827;
     -fx-padding: 8 12 8 12;
-    -fx-text-fill: #374151;
 }
 
 .combo-box-popup .list-cell:hover {
-    -fx-background-color: #eff6ff;
+    -fx-background-color: #f3f4f6;
+    -fx-text-fill: #111827;
 }
 
-.combo-box-popup .list-cell:selected {
-    -fx-background-color: #dbeafe;
-    -fx-text-fill: #1e40af;
+.combo-box-popup .list-cell:selected,
+.combo-box-popup .list-cell:selected:hover {
+    -fx-background-color: #e5e7eb;
+    -fx-text-fill: #111827;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -329,6 +352,40 @@
     -fx-text-fill: #6b7280;
     -fx-font-size: 11px;
 }
+
+.ad-card-rating-star {
+    -fx-text-fill: #f59e0b;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+}
+
+.ad-card-rating-text {
+    -fx-text-fill: #6b7280;
+    -fx-font-size: 12px;
+}
+
+/* ── Seller Info Section (Ad Details) ─────────────────────────── */
+
+.seller-info-label {
+    -fx-text-fill: #111827;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+}
+
+.seller-rating-label {
+    -fx-text-fill: #6b7280;
+    -fx-font-size: 13px;
+}
+
+/* ── Detail Field Labels (City, Category, Status) ────────────── */
+
+.detail-field-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #374151;
+    -fx-font-size: 13px;
+}
+
+
 
 /* ── Status Badges ─────────────────────────────────────────────── */
 
@@ -470,36 +527,14 @@
 .chat-bubble-mine {
     -fx-background-color: linear-gradient(to bottom, #3b82f6, #2563eb);
     -fx-background-radius: 16 16 4 16;
-    -fx-padding: 8 12 6 12;
+    -fx-padding: 10 14 10 14;
     -fx-effect: dropshadow(gaussian, rgba(37,99,235,0.2), 4, 0, 0, 1);
 }
 
 .chat-bubble-other {
     -fx-background-color: #e5e7eb;
     -fx-background-radius: 16 16 16 4;
-    -fx-padding: 8 12 6 12;
-}
-
-/* Every Label inside a bubble (sender/body/time) picks up readable
-   text color for that bubble's background — set once here instead of
-   on each label. */
-.chat-bubble-mine .label {
-    -fx-text-fill: white;
-}
-
-.chat-bubble-other .label {
-    -fx-text-fill: #1f2937;
-}
-
-.chat-bubble-sender {
-    -fx-font-size: 11px;
-    -fx-font-weight: bold;
-    -fx-opacity: 0.85;
-}
-
-.chat-bubble-time {
-    -fx-font-size: 10px;
-    -fx-opacity: 0.65;
+    -fx-padding: 10 14 10 14;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -564,6 +599,31 @@
 .list-cell:empty {
     -fx-background-color: white;
     -fx-border-color: transparent;
+}
+
+/* ── Reviews List (Seller Profile) ──────────────────────────────── */
+
+.reviews-list-view .list-cell {
+    -fx-padding: 14 16 14 16;
+}
+
+.review-star-empty {
+    -fx-text-fill: #d1d5db;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+}
+
+.review-buyer-label {
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-text-fill: #111827;
+}
+
+.review-comment-label {
+    -fx-text-fill: #374151;
+    -fx-font-size: 12px;
+    -fx-font-style: italic;
+    -fx-padding: 2 0 0 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════════

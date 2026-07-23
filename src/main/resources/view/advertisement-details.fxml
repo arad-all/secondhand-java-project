@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.geometry.Pos?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Circle?>
+<?import javafx.scene.shape.SVGPath?>
 
 <ScrollPane fitToWidth="true" style="-fx-background-color: transparent;" xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml" fx:controller="frontend.controller.AdvertisementDetailsController">
@@ -37,43 +41,79 @@
             </VBox>
 
             <!-- Details -->
-            <VBox spacing="8" HBox.hgrow="ALWAYS">
-                <Label fx:id="titleLabel" styleClass="page-header" wrapText="true"/>
-                <Label fx:id="priceLabel" styleClass="ad-card-price"/>
-                <Label fx:id="cityLabel"/>
-                <Label fx:id="categoryLabel"/>
-                <Label fx:id="statusLabel"/>
-                <Label fx:id="ownerLabel"/>
-                <Label fx:id="buyerLabel" managed="false" visible="false"/>
-                <Label fx:id="adminNoteLabel" managed="false" styleClass="error-label" visible="false" wrapText="true"/>
-                <Label fx:id="descriptionLabel" wrapText="true"/>
+            <VBox spacing="0" HBox.hgrow="ALWAYS">
+                <!-- Ad Info Section -->
+                <VBox spacing="8">
+                    <Label fx:id="titleLabel" styleClass="page-header" wrapText="true"/>
+                    <Label fx:id="priceLabel" styleClass="ad-card-price"/>
+                    <HBox spacing="6" alignment="CENTER_LEFT">
+                        <Label text="City:" styleClass="detail-field-label"/>
+                        <Label fx:id="cityLabel"/>
+                    </HBox>
+                    <HBox spacing="6" alignment="CENTER_LEFT">
+                        <Label text="Category:" styleClass="detail-field-label"/>
+                        <Label fx:id="categoryLabel"/>
+                    </HBox>
+                    <HBox spacing="6" alignment="CENTER_LEFT">
+                        <Label text="Status:" styleClass="detail-field-label"/>
+                        <Label fx:id="statusLabel"/>
+                    </HBox>
+                    <Label fx:id="buyerLabel" managed="false" visible="false"/>
+                    <Label fx:id="adminNoteLabel" managed="false" styleClass="error-label" visible="false" wrapText="true"/>
+                    <Label fx:id="descriptionLabel" wrapText="true"/>
+                </VBox>
 
-                <HBox alignment="CENTER_LEFT" spacing="10">
-                    <Label fx:id="sellerRatingLabel" managed="false" visible="false"/>
-                    <Button fx:id="viewSellerProfileButton" managed="false" onAction="#handleViewSellerProfile"
-                            text="View Seller Profile" visible="false"/>
-                    <Button fx:id="messageSellerButton" managed="false" onAction="#handleMessageSeller"
-                            styleClass="button-primary" text="Message Seller" visible="false"/>
+                <!-- Separator -->
+                <Separator style="-fx-padding: 12 0 12 0;"/>
+
+                <!-- Seller Info Section -->
+                <HBox alignment="CENTER_LEFT" spacing="12">
+                    <StackPane prefWidth="40" prefHeight="40">
+                        <Circle radius="18" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1.5"/>
+                        <SVGPath fill="#9ca3af" content="M18 18c3.315 0 6-2.685 6-6s-2.685-6-6-6-6 2.685-6 6 2.685 6 6 6zm0 3c-4.005 0-12 2.01-12 6v3h24v-3c0-3.99-7.995-6-12-6z"/>
+                    </StackPane>
+                    <VBox spacing="2">
+                        <Label fx:id="ownerLabel" styleClass="seller-info-label"/>
+                        <HBox alignment="CENTER_LEFT" spacing="6">
+                            <Label fx:id="sellerRatingStarLabel" managed="false" visible="false" styleClass="ad-card-rating-star"/>
+                            <Label fx:id="sellerRatingLabel" managed="false" visible="false" styleClass="seller-rating-label"/>
+                        </HBox>
+                    </VBox>
+                    <HBox alignment="CENTER_LEFT" spacing="10" HBox.hgrow="ALWAYS">
+                        <Button fx:id="viewSellerProfileButton" managed="false" onAction="#handleViewSellerProfile"
+                                text="View Profile" visible="false"/>
+                        <Button fx:id="messageSellerButton" managed="false" onAction="#handleMessageSeller"
+                                styleClass="button-primary" text="Message Seller" visible="false"/>
+                    </HBox>
                 </HBox>
 
-                <HBox spacing="10">
-                    <Button fx:id="favoriteButton" managed="false" onAction="#handleToggleFavorite"
-                            styleClass="button-outline" text="Add to Favorites" visible="false"/>
-                    <Button fx:id="editButton" managed="false" onAction="#handleEdit" text="Edit" visible="false"/>
-                    <Button fx:id="markAsSoldButton" managed="false" onAction="#handleMarkAsSold"
-                            styleClass="button-success" text="Mark as Sold" visible="false"/>
-                    <Button fx:id="deleteButton" managed="false" onAction="#handleDelete" styleClass="button-danger"
-                            text="Delete" visible="false"/>
-                    <Button fx:id="rateSellerButton" managed="false" onAction="#handleRateSeller" styleClass="button-warning" text="Rate Seller"
-                            visible="false"/>
-                </HBox>
+                <!-- Separator -->
+                <Separator style="-fx-padding: 12 0 12 0;"/>
 
-                <HBox spacing="10">
-                    <Button fx:id="approveButton" managed="false" onAction="#handleApprove" styleClass="button-success" text="Approve"
-                            visible="false"/>
-                    <Button fx:id="rejectButton" managed="false" onAction="#handleReject" styleClass="button-danger"
-                            text="Reject" visible="false"/>
-                </HBox>
+                <!-- Action Buttons Section -->
+                <VBox spacing="10">
+                    <HBox spacing="10">
+                        <Button fx:id="favoriteButton" managed="false" onAction="#handleToggleFavorite"
+                                styleClass="button-outline" text="Add to Favorites" visible="false"/>
+                        <Button fx:id="rateSellerButton" managed="false" onAction="#handleRateSeller" styleClass="button-warning" text="Rate Seller"
+                                visible="false"/>
+                    </HBox>
+
+                    <HBox spacing="10">
+                        <Button fx:id="editButton" managed="false" onAction="#handleEdit" text="Edit" visible="false"/>
+                        <Button fx:id="markAsSoldButton" managed="false" onAction="#handleMarkAsSold"
+                                styleClass="button-success" text="Mark as Sold" visible="false"/>
+                        <Button fx:id="deleteButton" managed="false" onAction="#handleDelete" styleClass="button-danger"
+                                text="Delete" visible="false"/>
+                    </HBox>
+
+                    <HBox spacing="10">
+                        <Button fx:id="approveButton" managed="false" onAction="#handleApprove" styleClass="button-success" text="Approve"
+                                visible="false"/>
+                        <Button fx:id="rejectButton" managed="false" onAction="#handleReject" styleClass="button-danger"
+                                text="Reject" visible="false"/>
+                    </HBox>
+                </VBox>
 
                 <Label fx:id="errorLabel" styleClass="error-label" wrapText="true"/>
             </VBox>

@@ -7,6 +7,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
@@ -55,6 +56,16 @@ public final class AdCardFactory {
         meta.getStyleClass().add("ad-card-meta");
 
         VBox info = new VBox(4, title, price, meta);
+
+        // Seller rating row — added only when the backend provides a non-null rating.
+        Double sellerRating = ad.hasNonNull("sellerRating") ? ad.get("sellerRating").asDouble() : null;
+        if (sellerRating != null && sellerRating > 0) {
+            Label starLabel = new Label("★");
+            starLabel.getStyleClass().add("ad-card-rating-star");            Label ratingValueLabel = new Label(String.format(Locale.US, "%.1f", sellerRating));
+            ratingValueLabel.getStyleClass().add("ad-card-rating-text");
+            HBox ratingRow = new HBox(2, starLabel, ratingValueLabel);
+            info.getChildren().add(ratingRow);
+        }
         info.setPadding(new Insets(8, 10, 10, 10));
 
         VBox card = new VBox(imageArea, info);
