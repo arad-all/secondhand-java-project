@@ -3,60 +3,57 @@ package frontend.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import frontend.Main;
 import frontend.service.ApiClient;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
+import frontend.util.AdCardFactory;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
-import javafx.scene.input.MouseButton;
+import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.VBox;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * UI logic for the favorites page (GET/POST/DELETE /api/favorites).
+ * Each favorite is a card (see {@link AdCardFactory}) with a small
+ * "Remove" button underneath, since unfavoriting is specific to this
+ * page and doesn't belong on the shared card itself.
  */
 public class FavoritesController {
 
     @FXML
-    private ListView<String> favoritesListView;
+    private FlowPane cardGrid;
     @FXML
     private Label errorLabel;
 
     private final ApiClient apiClient = new ApiClient();
-    private final List<Long> displayedAdIds = new ArrayList<>();
 
     @FXML
     private void initialize() {
-        favoritesListView.setOnMouseClicked(event -> {
-            if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
-                handleViewSelected();
-            }
-        });
-
         loadFavorites();
     }
 
     private void loadFavorites() {
         try {
             JsonNode favorites = apiClient.getFavorites();
-            ObservableList<String> rows = FXCollections.observableArrayList();
-            displayedAdIds.clear();
+            cardGrid.getChildren().clear();
 
             for (JsonNode favorite : favorites) {
                 JsonNode ad = favorite.path("advertisement");
-                displayedAdIds.add(ad.path("id").asLong());
+                long adId = ad.path("id").asLong();
 
-                String title = ad.path("title").asText("");
-                String price = ad.path("price").asText("");
-                String city = ad.path("cityName").asText("");
-                String status = ad.path("status").asText("");
+                VBox card = AdCardFactory.create(ad, apiClient, this::openAdvertisement);
 
-                rows.add(title + "   |   " + price + "   |   " + city + "   |   " + status);
+                Button removeButton = new Button("Remove from Favorites");
+                removeButton.getStyleClass().add("button-danger");
+                removeButton.setMaxWidth(Double.MAX_VALUE);
+                removeButton.setOnAction(event -> removeFavorite(adId));
+
+                VBox wrapper = new VBox(6, card, removeButton);
+                wrapper.setAlignment(Pos.TOP_CENTER);
+                cardGrid.getChildren().add(wrapper);
             }
 
-            favoritesListView.setItems(rows);
             errorLabel.setText("");
         } catch (IOException e) {
             errorLabel.setText("Could not load favorites: " + e.getMessage());
@@ -66,16 +63,9 @@ public class FavoritesController {
         }
     }
 
-    @FXML
-    private void handleRemoveSelected() {
-        int index = favoritesListView.getSelectionModel().getSelectedIndex();
-        if (index < 0 || index >= displayedAdIds.size()) {
-            errorLabel.setText("Select a favorite to remove first.");
-            return;
-        }
-
+    private void removeFavorite(long advertisementId) {
         try {
-            apiClient.removeFavorite(displayedAdIds.get(index));
+            apiClient.removeFavorite(advertisementId);
             loadFavorites();
         } catch (IOException e) {
             errorLabel.setText("Could not remove favorite: " + e.getMessage());
@@ -90,13 +80,8 @@ public class FavoritesController {
         loadFavorites();
     }
 
-    private void handleViewSelected() {
-        int index = favoritesListView.getSelectionModel().getSelectedIndex();
-        if (index < 0 || index >= displayedAdIds.size()) {
-            return;
-        }
-
-        AdvertisementDetailsController.setSelectedAdvertisementId(displayedAdIds.get(index));
+    private void openAdvertisement(Long id) {
+        AdvertisementDetailsController.setSelectedAdvertisementId(id);
         try {
             Main.switchScene("/view/advertisement-details.fxml");
         } catch (IOException e) {

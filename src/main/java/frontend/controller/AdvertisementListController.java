@@ -4,21 +4,20 @@ import com.fasterxml.jackson.databind.JsonNode;
 import frontend.Main;
 import frontend.service.ApiClient;
 import frontend.service.SessionManager;
+import frontend.util.AdCardFactory;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
-import javafx.scene.input.MouseButton;
+import javafx.scene.layout.FlowPane;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * UI logic for the advertisement browse/search page. Filters are sent to
@@ -26,15 +25,14 @@ import java.util.Locale;
  * returns the same ACTIVE ads the plain GET /api/advertisements does, so
  * one code path covers both "browse everything" and "search/filter".
  * <p>
- * Each row in the list keeps its advertisement id in a parallel list
- * (displayedAdIds) so a double-click can navigate to the matching
- * details page without needing a dedicated table-row model class.
- * Category/city ComboBoxes work the same way (parallel id lists).
+ * Results are rendered as a wrapping grid of cards (see
+ * {@link AdCardFactory}) rather than a ListView, styled like a simple
+ * marketplace listing page.
  */
 public class AdvertisementListController {
 
     @FXML
-    private ListView<String> advertisementListView;
+    private FlowPane cardGrid;
     @FXML
     private TextField keywordField;
     @FXML
@@ -53,7 +51,6 @@ public class AdvertisementListController {
     private Label errorLabel;
 
     private final ApiClient apiClient = new ApiClient();
-    private final List<Long> displayedAdIds = new ArrayList<>();
 
     private final List<Long> categoryIds = new ArrayList<>();
     private final List<Long> cityIds = new ArrayList<>();
@@ -75,12 +72,6 @@ public class AdvertisementListController {
         loadCategoryOptions();
         loadCityOptions();
         loadSortOptions();
-
-        advertisementListView.setOnMouseClicked(event -> {
-            if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
-                handleViewSelected();
-            }
-        });
 
         handleSearch();
     }
@@ -177,23 +168,20 @@ public class AdvertisementListController {
     }
 
     private void renderResults(JsonNode advertisements) {
-        ObservableList<String> rows = FXCollections.observableArrayList();
-        displayedAdIds.clear();
+        cardGrid.getChildren().clear();
 
         for (JsonNode ad : advertisements) {
-            displayedAdIds.add(ad.path("id").asLong());
-
-            String title = ad.path("title").asText("");
-            String price = ad.path("price").asText("");
-            String city = ad.path("cityName").asText("");
-            String status = ad.path("status").asText("");
-            String sellerRating = String.format(Locale.ROOT, "%.1f", ad.path("sellerRating").asDouble(0.0));
-
-            rows.add(title + "   |   " + price + "   |   " + city
-                    + "   |   Seller rating: " + sellerRating + "   |   " + status);
+            cardGrid.getChildren().add(AdCardFactory.create(ad, apiClient, this::openAdvertisement));
         }
+    }
 
-        advertisementListView.setItems(rows);
+    private void openAdvertisement(Long id) {
+        AdvertisementDetailsController.setSelectedAdvertisementId(id);
+        try {
+            Main.switchScene("/view/advertisement-details.fxml");
+        } catch (IOException e) {
+            errorLabel.setText("Could not open advertisement details.");
+        }
     }
 
     @FXML
@@ -210,22 +198,6 @@ public class AdvertisementListController {
     @FXML
     private void handleRefresh() {
         handleSearch();
-    }
-
-    private void handleViewSelected() {
-        int index = advertisementListView.getSelectionModel().getSelectedIndex();
-        if (index < 0 || index >= displayedAdIds.size()) {
-            return;
-        }
-
-        Long selectedId = displayedAdIds.get(index);
-        AdvertisementDetailsController.setSelectedAdvertisementId(selectedId);
-
-        try {
-            Main.switchScene("/view/advertisement-details.fxml");
-        } catch (IOException e) {
-            errorLabel.setText("Could not open advertisement details.");
-        }
     }
 
     @FXML

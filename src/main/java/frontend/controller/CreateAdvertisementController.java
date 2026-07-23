@@ -6,11 +6,20 @@ import frontend.service.ApiClient;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.StackPane;
+import javafx.stage.FileChooser;
 
+import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -20,6 +29,11 @@ import java.util.List;
  * UI logic for the create-advertisement page. Category and city are
  * chosen from ComboBoxes populated from GET /api/categories(/{id}/children)
  * and GET /api/cities, rather than asking the user to type a raw id.
+ * <p>
+ * Images are picked from the local filesystem via {@link FileChooser},
+ * kept in memory ({@link #selectedImages}) so they can be removed before
+ * submitting, and uploaded (POST /api/advertisements/{id}/images) only
+ * after the advertisement itself has been created successfully.
  */
 public class CreateAdvertisementController {
 
@@ -34,11 +48,14 @@ public class CreateAdvertisementController {
     @FXML
     private ComboBox<String> cityComboBox;
     @FXML
+    private FlowPane imagePreviewPane;
+    @FXML
     private Label errorLabel;
 
     private final ApiClient apiClient = new ApiClient();
     private final List<Long> categoryIds = new ArrayList<>();
     private final List<Long> cityIds = new ArrayList<>();
+    private final List<File> selectedImages = new ArrayList<>();
 
     @FXML
     private void initialize() {
@@ -85,6 +102,47 @@ public class CreateAdvertisementController {
     }
 
     @FXML
+    private void handleChooseImages() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Select Images");
+        chooser.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("Images", "*.jpg", "*.jpeg", "*.png", "*.webp", "*.gif"));
+
+        List<File> files = chooser.showOpenMultipleDialog(imagePreviewPane.getScene().getWindow());
+        if (files != null && !files.isEmpty()) {
+            selectedImages.addAll(files);
+            refreshImagePreview();
+        }
+    }
+
+    private void refreshImagePreview() {
+        imagePreviewPane.getChildren().clear();
+        for (File file : selectedImages) {
+            imagePreviewPane.getChildren().add(buildImageTile(file));
+        }
+    }
+
+    private Node buildImageTile(File file) {
+        ImageView imageView = new ImageView(new Image(file.toURI().toString(), 90, 70, false, true, true));
+        imageView.setFitWidth(90);
+        imageView.setFitHeight(70);
+        imageView.setPreserveRatio(false);
+
+        Button removeButton = new Button("\u00D7");
+        removeButton.getStyleClass().add("button-danger");
+        removeButton.setOnAction(event -> {
+            selectedImages.remove(file);
+            refreshImagePreview();
+        });
+
+        StackPane tile = new StackPane(imageView, removeButton);
+        tile.getStyleClass().add("image-picker-tile");
+        tile.setPrefSize(90, 70);
+        StackPane.setAlignment(removeButton, Pos.TOP_RIGHT);
+        return tile;
+    }
+
+    @FXML
     private void handleSubmit() {
         String title = titleField.getText();
         String description = descriptionField.getText();
@@ -111,8 +169,22 @@ public class CreateAdvertisementController {
 
         try {
             JsonNode response = apiClient.createAdvertisement(title, description, price, categoryId, cityId);
-            showSuccess("Advertisement submitted: " + response.path("title").asText(title)
-                    + " (status: " + response.path("status").asText("PENDING_REVIEW") + ")");
+            Long newAdId = response.path("id").asLong();
+
+            if (!selectedImages.isEmpty()) {
+                try {
+                    apiClient.uploadImages(newAdId, selectedImages);
+                } catch (IOException e) {
+                    // The advertisement itself was created fine; only the images failed.
+                    // Still navigate through, but let the user know images didn't make it.
+                    AdvertisementDetailsController.setSelectedAdvertisementId(newAdId);
+                    Main.switchScene("/view/advertisement-details.fxml");
+                    return;
+                }
+            }
+
+            AdvertisementDetailsController.setSelectedAdvertisementId(newAdId);
+            Main.switchScene("/view/advertisement-details.fxml");
         } catch (IOException e) {
             showError("Could not submit advertisement: " + e.getMessage());
         } catch (InterruptedException e) {
@@ -136,12 +208,10 @@ public class CreateAdvertisementController {
     }
 
     private void showError(String text) {
-        errorLabel.setStyle("-fx-text-fill: red;");
-        errorLabel.setText(text);
-    }
-
-    private void showSuccess(String text) {
-        errorLabel.setStyle("-fx-text-fill: green;");
+        errorLabel.getStyleClass().removeAll("success-label");
+        if (!errorLabel.getStyleClass().contains("error-label")) {
+            errorLabel.getStyleClass().add("error-label");
+        }
         errorLabel.setText(text);
     }
 }

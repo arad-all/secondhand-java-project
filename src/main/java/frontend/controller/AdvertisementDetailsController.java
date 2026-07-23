@@ -15,10 +15,16 @@ import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.shape.Rectangle;
 import javafx.util.Pair;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -83,6 +89,16 @@ public class AdvertisementDetailsController {
     private Button rejectButton;
     @FXML
     private Label errorLabel;
+    @FXML
+    private ImageView mainImageView;
+    @FXML
+    private Label noImagesLabel;
+    @FXML
+    private HBox thumbnailBox;
+    @FXML
+    private Button prevImageButton;
+    @FXML
+    private Button nextImageButton;
 
     private final ApiClient apiClient = new ApiClient();
     private boolean isFavorite;
@@ -90,6 +106,8 @@ public class AdvertisementDetailsController {
     private String buyerUsername;
     private boolean alreadyRatedByCurrentUser;
     private Long existingConversationId;
+    private final List<String> imageUrls = new ArrayList<>();
+    private int currentImageIndex;
 
     public static void setSelectedAdvertisementId(Long id) {
         selectedAdvertisementId = id;
@@ -137,6 +155,8 @@ public class AdvertisementDetailsController {
                 setVisible(adminNoteLabel, false);
             }
 
+            loadGallery(ad);
+
             boolean loggedIn = SessionManager.getInstance().isLoggedIn();
             boolean isOwner = loggedIn && ownerUsername.equals(SessionManager.getInstance().getUsername());
             boolean isAdmin = SessionManager.getInstance().isAdmin();
@@ -155,6 +175,88 @@ public class AdvertisementDetailsController {
             Thread.currentThread().interrupt();
             errorLabel.setText("Loading advertisement was interrupted.");
         }
+    }
+
+    /**
+     * Builds the image gallery from the detail response's {@code imageUrls}
+     * (already-resolvable paths, see {@code AdvertisementMapper#toDetail}):
+     * one clickable thumbnail per image, plus a larger preview of whichever
+     * one is currently selected. Falls back to a plain "No images" label
+     * when the advertisement has none.
+     */
+    private void loadGallery(JsonNode ad) {
+        imageUrls.clear();
+        for (JsonNode url : ad.path("imageUrls")) {
+            String resolved = apiClient.resolveImageUrl(url.asText());
+            if (resolved != null) {
+                imageUrls.add(resolved);
+            }
+        }
+
+        thumbnailBox.getChildren().clear();
+        for (int i = 0; i < imageUrls.size(); i++) {
+            thumbnailBox.getChildren().add(buildThumbnail(imageUrls.get(i), i));
+        }
+
+        currentImageIndex = 0;
+        setMainImage(0);
+    }
+
+    private ImageView buildThumbnail(String url, int index) {
+        ImageView thumbnail = new ImageView(new Image(url, 70, 55, false, true, true));
+        thumbnail.setFitWidth(70);
+        thumbnail.setFitHeight(55);
+        thumbnail.setPreserveRatio(false);
+        thumbnail.getStyleClass().add("gallery-thumb");
+
+        Rectangle clip = new Rectangle(70, 55);
+        clip.setArcWidth(6);
+        clip.setArcHeight(6);
+        thumbnail.setClip(clip);
+
+        thumbnail.setOnMouseClicked(event -> {
+            currentImageIndex = index;
+            setMainImage(index);
+        });
+        return thumbnail;
+    }
+
+    /** Shows the image at {@code index} in the main preview and highlights the matching thumbnail. */
+    private void setMainImage(int index) {
+        boolean hasImages = !imageUrls.isEmpty();
+        mainImageView.setVisible(hasImages);
+        noImagesLabel.setVisible(!hasImages);
+        prevImageButton.setVisible(hasImages && imageUrls.size() > 1);
+        nextImageButton.setVisible(hasImages && imageUrls.size() > 1);
+
+        if (hasImages) {
+            mainImageView.setImage(new Image(imageUrls.get(index), 420, 320, false, true, true));
+        }
+
+        for (int i = 0; i < thumbnailBox.getChildren().size(); i++) {
+            thumbnailBox.getChildren().get(i).getStyleClass().remove("gallery-thumb-selected");
+            if (i == index) {
+                thumbnailBox.getChildren().get(i).getStyleClass().add("gallery-thumb-selected");
+            }
+        }
+    }
+
+    @FXML
+    private void handlePreviousImage() {
+        if (imageUrls.isEmpty()) {
+            return;
+        }
+        currentImageIndex = (currentImageIndex - 1 + imageUrls.size()) % imageUrls.size();
+        setMainImage(currentImageIndex);
+    }
+
+    @FXML
+    private void handleNextImage() {
+        if (imageUrls.isEmpty()) {
+            return;
+        }
+        currentImageIndex = (currentImageIndex + 1) % imageUrls.size();
+        setMainImage(currentImageIndex);
     }
 
     /**
