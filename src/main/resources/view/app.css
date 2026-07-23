@@ -414,17 +414,92 @@
     -fx-padding: 12;
 }
 
+/* ── Conversation List (Telegram/WhatsApp-style rows) ──────────── */
+
+.chat-conversations-list .list-cell {
+    -fx-padding: 12 16 12 16;
+}
+
+.chat-list-name {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #111827;
+}
+
+.chat-list-subject {
+    -fx-font-size: 11px;
+    -fx-text-fill: #9ca3af;
+}
+
+.chat-list-preview {
+    -fx-font-size: 12px;
+    -fx-text-fill: #6b7280;
+}
+
+.chat-list-time {
+    -fx-font-size: 11px;
+    -fx-text-fill: #9ca3af;
+}
+
+.chat-list-badge {
+    -fx-background-color: linear-gradient(to bottom, #3b82f6, #2563eb);
+    -fx-text-fill: white;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 100;
+    -fx-min-width: 20;
+    -fx-min-height: 20;
+    -fx-max-width: 20;
+    -fx-max-height: 20;
+    -fx-alignment: CENTER;
+}
+
+/* ── Message Bubbles ────────────────────────────────────────────── */
+
+.chat-messages-list .list-cell {
+    -fx-padding: 5 16 5 16;
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+}
+
+.chat-messages-list .list-cell:filled:hover,
+.chat-messages-list .list-cell:filled:selected {
+    -fx-background-color: transparent;
+}
+
 .chat-bubble-mine {
     -fx-background-color: linear-gradient(to bottom, #3b82f6, #2563eb);
     -fx-background-radius: 16 16 4 16;
-    -fx-padding: 10 14 10 14;
+    -fx-padding: 8 12 6 12;
     -fx-effect: dropshadow(gaussian, rgba(37,99,235,0.2), 4, 0, 0, 1);
 }
 
 .chat-bubble-other {
     -fx-background-color: #e5e7eb;
     -fx-background-radius: 16 16 16 4;
-    -fx-padding: 10 14 10 14;
+    -fx-padding: 8 12 6 12;
+}
+
+/* Every Label inside a bubble (sender/body/time) picks up readable
+   text color for that bubble's background — set once here instead of
+   on each label. */
+.chat-bubble-mine .label {
+    -fx-text-fill: white;
+}
+
+.chat-bubble-other .label {
+    -fx-text-fill: #1f2937;
+}
+
+.chat-bubble-sender {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-opacity: 0.85;
+}
+
+.chat-bubble-time {
+    -fx-font-size: 10px;
+    -fx-opacity: 0.65;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
