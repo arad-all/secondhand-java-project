@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
@@ -13,8 +14,11 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -168,6 +172,77 @@ public class ApiClient {
     /** Soft-deletes an advertisement. Owner or admin only (enforced by the backend). */
     public void deleteAdvertisement(Long id) throws IOException, InterruptedException {
         sendJsonRequest("DELETE", "/api/advertisements/" + id, null);
+    }
+
+    /**
+     * Resolves a (possibly relative, server-supplied) image path such as
+     * {@code /api/advertisements/3/images/abc.jpg} into a full URL the
+     * JavaFX {@code Image} class can load directly.
+     */
+    public String resolveImageUrl(String imagePathOrUrl) {
+        if (imagePathOrUrl == null || imagePathOrUrl.isBlank()) {
+            return null;
+        }
+        return imagePathOrUrl.startsWith("http") ? imagePathOrUrl : BASE_URL + imagePathOrUrl;
+    }
+
+    /**
+     * Uploads one or more local image files to an advertisement
+     * (POST /api/advertisements/{id}/images, multipart/form-data).
+     * Owner-only and only while the ad is editable (enforced by the
+     * backend). Returns the advertisement's updated detail view.
+     */
+    public JsonNode uploadImages(Long advertisementId, List<File> files) throws IOException, InterruptedException {
+        String boundary = "----SecondHandBoundary" + UUID.randomUUID();
+        byte[] body = buildMultipartBody(boundary, files);
+
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/api/advertisements/" + advertisementId + "/images"))
+                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                .POST(HttpRequest.BodyPublishers.ofByteArray(body));
+
+        String token = SessionManager.getInstance().getToken();
+        if (token != null && !token.isBlank()) {
+            requestBuilder.header("Authorization", "Bearer " + token);
+        }
+
+        return sendAndParse(requestBuilder.build());
+    }
+
+    /** Removes one image from an advertisement (DELETE /api/advertisements/{id}/images/{filename}). Owner-only. */
+    public JsonNode removeImage(Long advertisementId, String filename) throws IOException, InterruptedException {
+        return sendJsonRequest("DELETE", "/api/advertisements/" + advertisementId + "/images/" + encode(filename), null);
+    }
+
+    /**
+     * Builds a {@code multipart/form-data} body containing one "files" part
+     * per file — matching the backend's {@code List<MultipartFile> files}
+     * parameter on {@code AdvertisementController#addImages}.
+     */
+    private byte[] buildMultipartBody(String boundary, List<File> files) throws IOException {
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        for (File file : files) {
+            out.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
+            out.write(("Content-Disposition: form-data; name=\"files\"; filename=\"" + file.getName() + "\"\r\n")
+                    .getBytes(StandardCharsets.UTF_8));
+            out.write(("Content-Type: " + guessContentType(file) + "\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+            out.write(Files.readAllBytes(file.toPath()));
+            out.write("\r\n".getBytes(StandardCharsets.UTF_8));
+        }
+        out.write(("--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
+        return out.toByteArray();
+    }
+
+    private String guessContentType(File file) throws IOException {
+        String detected = Files.probeContentType(file.toPath());
+        if (detected != null) {
+            return detected;
+        }
+        String name = file.getName().toLowerCase(java.util.Locale.ROOT);
+        if (name.endsWith(".png")) return "image/png";
+        if (name.endsWith(".webp")) return "image/webp";
+        if (name.endsWith(".gif")) return "image/gif";
+        return "image/jpeg";
     }
 
     // ------------------------------------------------------------------
@@ -384,7 +459,12 @@ public class ApiClient {
 
         requestBuilder.method(method, bodyPublisher);
 
-        HttpResponse<String> response = httpClient.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
+        return sendAndParse(requestBuilder.build());
+    }
+
+    /** Shared by {@link #sendJsonRequest} and {@link #uploadImages}: sends a built request and parses its JSON response. */
+    private JsonNode sendAndParse(HttpRequest request) throws IOException, InterruptedException {
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
         String responseBody = response.body();
         JsonNode responseJson = (responseBody == null || responseBody.isBlank())

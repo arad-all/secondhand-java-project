@@ -4,26 +4,43 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox spacing="10" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
-      fx:controller="frontend.controller.CreateAdvertisementController">
-    <padding>
-        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
-    </padding>
+<ScrollPane fitToWidth="true" style="-fx-background-color: transparent;" xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml" fx:controller="frontend.controller.CreateAdvertisementController">
+    <VBox alignment="TOP_CENTER" style="-fx-background-color: transparent;">
+        <padding>
+            <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
+        </padding>
+        <VBox maxWidth="620" spacing="10" styleClass="form-panel">
+            <padding>
+                <Insets bottom="24.0" left="24.0" right="24.0" top="24.0"/>
+            </padding>
 
-    <Label style="-fx-font-size: 22px; -fx-font-weight: bold;" text="New Advertisement"/>
+            <Label styleClass="page-header" text="New Advertisement"/>
 
-    <TextField fx:id="titleField" promptText="Title"/>
-    <TextArea fx:id="descriptionField" prefRowCount="4" promptText="Description"/>
-    <TextField fx:id="priceField" promptText="Price"/>
-    <ComboBox fx:id="categoryComboBox" prefWidth="260" promptText="Category"/>
-    <ComboBox fx:id="cityComboBox" prefWidth="260" promptText="City"/>
+            <TextField fx:id="titleField" promptText="Title"/>
+            <TextArea fx:id="descriptionField" prefRowCount="4" promptText="Description"/>
+            <TextField fx:id="priceField" promptText="Price"/>
+            <ComboBox fx:id="categoryComboBox" prefWidth="300" promptText="Category"/>
+            <ComboBox fx:id="cityComboBox" prefWidth="300" promptText="City"/>
 
-    <Button onAction="#handleSubmit" text="Submit"/>
-    <Button onAction="#handleCancel" text="Back to Browse"/>
+            <Label styleClass="section-header" text="Images"/>
+            <Label styleClass="subtle-label" text="Select one or more photos from your computer."/>
+            <Button onAction="#handleChooseImages" text="Choose Images..."/>
+            <FlowPane fx:id="imagePreviewPane" hgap="8" vgap="8"/>
 
-    <Label fx:id="errorLabel" wrapText="true"/>
-</VBox>
+            <HBox spacing="10">
+                <Button onAction="#handleSubmit" styleClass="button-primary" text="Submit"/>
+                <Button onAction="#handleCancel" text="Back to Browse"/>
+            </HBox>
+
+            <Label fx:id="errorLabel" wrapText="true"/>
+        </VBox>
+    </VBox>
+</ScrollPane>
