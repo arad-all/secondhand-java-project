@@ -1,0 +1,574 @@
+/*
+ * Enhanced app-wide stylesheet for Second-Hand Marketplace
+ * Modern, clean design with blue accents and subtle depth
+ */
+
+/* ═══════════════════════════════════════════════════════════════════
+   ROOT & TYPOGRAPHY
+   ═══════════════════════════════════════════════════════════════════ */
+
+.root {
+    -fx-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    -fx-font-size: 13px;
+    -fx-background-color: #f0f2f5;
+    -fx-text-fill: #1a1a2e;
+}
+
+/* ── Typography Helpers ─────────────────────────────────────────── */
+
+.page-header {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1a1a2e;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 2, 0, 0, 1);
+}
+
+.section-header {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #16213e;
+}
+
+.subtle-label {
+    -fx-text-fill: #6b7280;
+    -fx-font-size: 12px;
+}
+
+.error-label {
+    -fx-text-fill: #dc2626;
+    -fx-font-weight: bold;
+}
+
+.success-label {
+    -fx-text-fill: #059669;
+    -fx-font-weight: bold;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   BUTTONS
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Default Button ─────────────────────────────────────────────── */
+
+.button {
+    -fx-background-color: #e8eaed;
+    -fx-text-fill: #374151;
+    -fx-background-radius: 8;
+    -fx-padding: 8 18 8 18;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 3, 0, 0, 1);
+}
+
+.button:hover {
+    -fx-background-color: #d1d5db;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 5, 0, 0, 2);
+}
+
+.button:pressed {
+    -fx-background-color: #b9bcc2;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 2, 0, 0, 1);
+}
+
+/* ── Primary Button (Blue) ─────────────────────────────────────── */
+
+.button-primary {
+    -fx-background-color: linear-gradient(to bottom, #3b82f6, #2563eb);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-padding: 9 22 9 22;
+    -fx-effect: dropshadow(gaussian, rgba(37,99,235,0.3), 6, 0, 0, 2);
+}
+
+.button-primary:hover {
+    -fx-background-color: linear-gradient(to bottom, #2563eb, #1d4ed8);
+    -fx-effect: dropshadow(gaussian, rgba(37,99,235,0.4), 8, 0, 0, 3);
+}
+
+.button-primary:pressed {
+    -fx-background-color: linear-gradient(to bottom, #1d4ed8, #1e40af);
+    -fx-effect: dropshadow(gaussian, rgba(37,99,235,0.2), 3, 0, 0, 1);
+}
+
+/* ── Danger Button (Red) ───────────────────────────────────────── */
+
+.button-danger {
+    -fx-background-color: linear-gradient(to bottom, #ef4444, #dc2626);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-padding: 8 18 8 18;
+    -fx-effect: dropshadow(gaussian, rgba(220,38,38,0.3), 5, 0, 0, 2);
+}
+
+.button-danger:hover {
+    -fx-background-color: linear-gradient(to bottom, #dc2626, #b91c1c);
+    -fx-effect: dropshadow(gaussian, rgba(220,38,38,0.4), 7, 0, 0, 3);
+}
+
+.button-danger:pressed {
+    -fx-background-color: linear-gradient(to bottom, #b91c1c, #991b1b);
+}
+
+/* ── Success Button (Green) ────────────────────────────────────── */
+
+.button-success {
+    -fx-background-color: linear-gradient(to bottom, #22c55e, #16a34a);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-padding: 8 18 8 18;
+    -fx-effect: dropshadow(gaussian, rgba(22,163,74,0.3), 5, 0, 0, 2);
+}
+
+.button-success:hover {
+    -fx-background-color: linear-gradient(to bottom, #16a34a, #15803d);
+    -fx-effect: dropshadow(gaussian, rgba(22,163,74,0.4), 7, 0, 0, 3);
+}
+
+/* ── Warning Button (Amber) ────────────────────────────────────── */
+
+.button-warning {
+    -fx-background-color: linear-gradient(to bottom, #f59e0b, #d97706);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-padding: 8 18 8 18;
+    -fx-effect: dropshadow(gaussian, rgba(217,119,6,0.3), 5, 0, 0, 2);
+}
+
+.button-warning:hover {
+    -fx-background-color: linear-gradient(to bottom, #d97706, #b45309);
+}
+
+/* ── Link Button ────────────────────────────────────────────────── */
+
+.button-link {
+    -fx-background-color: transparent;
+    -fx-text-fill: #2563eb;
+    -fx-underline: false;
+    -fx-padding: 4 6 4 6;
+    -fx-font-weight: normal;
+}
+
+.button-link:hover {
+    -fx-text-fill: #1d4ed8;
+    -fx-underline: true;
+}
+
+/* ── Outline Button ─────────────────────────────────────────────── */
+
+.button-outline {
+    -fx-background-color: transparent;
+    -fx-border-color: #2563eb;
+    -fx-border-width: 2;
+    -fx-border-radius: 8;
+    -fx-text-fill: #2563eb;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-padding: 7 18 7 18;
+}
+
+.button-outline:hover {
+    -fx-background-color: #eff6ff;
+    -fx-border-color: #1d4ed8;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   FORM INPUTS
+   ═══════════════════════════════════════════════════════════════════ */
+
+.text-field,
+.text-area,
+.combo-box,
+.password-field {
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-border-color: #d1d5db;
+    -fx-border-width: 1.5;
+    -fx-padding: 10 14 10 14;
+    -fx-font-size: 13px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.04), 2, 0, 0, 1);
+}
+
+.text-field:focused,
+.text-area:focused,
+.combo-box:focused,
+.password-field:focused {
+    -fx-border-color: #3b82f6;
+    -fx-border-width: 2;
+    -fx-effect: dropshadow(gaussian, rgba(59,130,246,0.25), 6, 0, 0, 0);
+}
+
+.text-field:hover,
+.text-area:hover,
+.combo-box:hover,
+.password-field:hover {
+    -fx-border-color: #9ca3af;
+}
+
+/* ── ComboBox Dropdown ──────────────────────────────────────────── */
+
+.combo-box-popup .list-view {
+    -fx-background-color: white;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 8, 0, 0, 4);
+}
+
+.combo-box-popup .list-cell {
+    -fx-padding: 8 12 8 12;
+    -fx-text-fill: #374151;
+}
+
+.combo-box-popup .list-cell:hover {
+    -fx-background-color: #eff6ff;
+}
+
+.combo-box-popup .list-cell:selected {
+    -fx-background-color: #dbeafe;
+    -fx-text-fill: #1e40af;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PANELS & CARDS
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Auth Card (Login / Register) ──────────────────────────────── */
+
+.auth-card {
+    -fx-background-color: white;
+    -fx-background-radius: 16;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 16, 0, 0, 8);
+    -fx-padding: 40 48 40 48;
+}
+
+.auth-card .text-field,
+.auth-card .password-field {
+    -fx-pref-width: 300;
+    -fx-padding: 12 16 12 16;
+}
+
+.auth-card .button-primary {
+    -fx-pref-width: 300;
+    -fx-padding: 12 24 12 24;
+    -fx-font-size: 14px;
+}
+
+/* ── Toolbar Panel ─────────────────────────────────────────────── */
+
+.toolbar-panel {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 8, 0, 0, 2);
+    -fx-border-color: #e5e7eb;
+    -fx-border-width: 1;
+}
+
+/* ── Form Panel ─────────────────────────────────────────────────── */
+
+.form-panel {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 8, 0, 0, 2);
+    -fx-padding: 24;
+}
+
+/* ── Profile Card ───────────────────────────────────────────────── */
+
+.profile-card {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 10, 0, 0, 4);
+    -fx-padding: 28 32 28 32;
+    -fx-border-color: #e5e7eb;
+    -fx-border-width: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ADVERTISEMENT CARDS
+   ═══════════════════════════════════════════════════════════════════ */
+
+.ad-card {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-border-color: #e5e7eb;
+    -fx-border-width: 1;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 6, 0, 0, 2);
+}
+
+.ad-card:hover {
+    -fx-border-color: #93c5fd;
+    -fx-border-width: 2;
+    -fx-effect: dropshadow(gaussian, rgba(59,130,246,0.15), 12, 0, 0, 4);
+}
+
+.ad-card-image {
+    -fx-background-color: #f3f4f6;
+    -fx-background-radius: 12 12 0 0;
+}
+
+.ad-card-title {
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-text-fill: #111827;
+}
+
+.ad-card-price {
+    -fx-font-weight: bold;
+    -fx-font-size: 15px;
+    -fx-text-fill: #2563eb;
+}
+
+.ad-card-meta {
+    -fx-text-fill: #6b7280;
+    -fx-font-size: 11px;
+}
+
+/* ── Status Badges ─────────────────────────────────────────────── */
+
+.status-badge {
+    -fx-background-radius: 12;
+    -fx-padding: 4 10 4 10;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.status-active {
+    -fx-background-color: linear-gradient(to bottom, #22c55e, #16a34a);
+}
+
+.status-pending_review {
+    -fx-background-color: linear-gradient(to bottom, #f59e0b, #d97706);
+}
+
+.status-sold {
+    -fx-background-color: linear-gradient(to bottom, #6b7280, #4b5563);
+}
+
+.status-rejected {
+    -fx-background-color: linear-gradient(to bottom, #ef4444, #dc2626);
+}
+
+.status-deleted {
+    -fx-background-color: linear-gradient(to bottom, #9ca3af, #6b7280);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   IMAGE GALLERY (Advertisement Details)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.gallery-main-image {
+    -fx-background-color: #f3f4f6;
+    -fx-background-radius: 12;
+}
+
+.gallery-thumb {
+    -fx-background-color: #f3f4f6;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-border-color: transparent;
+    -fx-border-width: 3;
+    -fx-cursor: hand;
+}
+
+.gallery-thumb:hover {
+    -fx-border-color: #93c5fd;
+}
+
+.gallery-thumb-selected {
+    -fx-border-color: #2563eb;
+    -fx-effect: dropshadow(gaussian, rgba(37,99,235,0.3), 6, 0, 0, 2);
+}
+
+/* ── Image Picker (Create / Edit) ──────────────────────────────── */
+
+.image-picker-tile {
+    -fx-background-color: #f9fafb;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-color: #d1d5db;
+    -fx-border-width: 2;
+    -fx-cursor: hand;
+}
+
+.image-picker-tile:hover {
+    -fx-background-color: #eff6ff;
+    -fx-border-color: #93c5fd;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CHAT STYLES
+   ═══════════════════════════════════════════════════════════════════ */
+
+.chat-input-bar {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 6, 0, 0, 2);
+    -fx-padding: 12;
+}
+
+.chat-bubble-mine {
+    -fx-background-color: linear-gradient(to bottom, #3b82f6, #2563eb);
+    -fx-background-radius: 16 16 4 16;
+    -fx-padding: 10 14 10 14;
+    -fx-effect: dropshadow(gaussian, rgba(37,99,235,0.2), 4, 0, 0, 1);
+}
+
+.chat-bubble-other {
+    -fx-background-color: #e5e7eb;
+    -fx-background-radius: 16 16 16 4;
+    -fx-padding: 10 14 10 14;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAB PANE (Admin Panel)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.tab-pane .tab-header-area {
+    -fx-padding: 0 0 0 16;
+}
+
+.tab-pane .tab {
+    -fx-background-color: #e5e7eb;
+    -fx-background-radius: 8 8 0 0;
+    -fx-padding: 10 20 10 20;
+    -fx-font-weight: bold;
+}
+
+.tab-pane .tab:selected {
+    -fx-background-color: white;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 4, 0, 0, 2);
+}
+
+.tab-pane .tab:hover {
+    -fx-background-color: #d1d5db;
+}
+
+.tab-pane .tab-content-area {
+    -fx-background-color: white;
+    -fx-background-radius: 0 0 12 12;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 8, 0, 0, 2);
+    -fx-padding: 20;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIST VIEW (Conversations, Admin Lists)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.list-view {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 10;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.04), 4, 0, 0, 1);
+}
+
+.list-cell {
+    -fx-background-color: white;
+    -fx-padding: 12 16 12 16;
+    -fx-border-color: transparent transparent #f3f4f6 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.list-cell:hover {
+    -fx-background-color: #f9fafb;
+}
+
+.list-cell:selected {
+    -fx-background-color: #eff6ff;
+    -fx-text-fill: #1e40af;
+}
+
+.list-cell:empty {
+    -fx-background-color: white;
+    -fx-border-color: transparent;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   OVERLAY / MODAL BACKDROP
+   ═══════════════════════════════════════════════════════════════════ */
+
+.modal-backdrop {
+    -fx-background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    -fx-background-color: white;
+    -fx-background-radius: 16;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 24, 0, 0, 8);
+    -fx-padding: 32;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SCROLL PANE
+   ═══════════════════════════════════════════════════════════════════ */
+
+.scroll-pane {
+    -fx-background-color: transparent;
+}
+
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: #c1c1c1;
+    -fx-background-radius: 4;
+}
+
+.scroll-bar .thumb:hover {
+    -fx-background-color: #a1a1a1;
+}
+
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.scroll-bar .increment-arrow,
+.scroll-bar .decrement-arrow {
+    -fx-shape: "";
+    -fx-padding: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TOOLTIP
+   ═══════════════════════════════════════════════════════════════════ */
+
+.tooltip {
+    -fx-background-color: #1f2937;
+    -fx-text-fill: white;
+    -fx-background-radius: 6;
+    -fx-padding: 6 10 6 10;
+    -fx-font-size: 11px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 6, 0, 0, 2);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SEPARATOR
+   ═══════════════════════════════════════════════════════════════════ */
+
+.separator .line {
+    -fx-border-color: #e5e7eb;
+    -fx-border-width: 1 0 0 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PROGRESS INDICATOR
+   ═══════════════════════════════════════════════════════════════════ */
+
+.progress-indicator .progress {
+    -fx-progress-color: #3b82f6;
+}
