@@ -21,10 +21,10 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
     /**
      * A user's favorites list needs to render a summary card for each
      * saved ad, so {@code advertisement} is fetched eagerly to avoid an
-     * N+1 lazy load per row.
+     * N+1 lazy load per row. Ordered newest-favorited-first.
      */
     @EntityGraph(attributePaths = "advertisement")
-    List<Favorite> findByUserId(Long userId);
+    List<Favorite> findByUserIdOrderByCreatedAtDesc(Long userId);
 
     void deleteByUserIdAndAdvertisementId(Long userId, Long advertisementId);
 

@@ -32,7 +32,7 @@ public class FavoriteService {
     /** The caller's saved ads. */
     @Transactional(readOnly = true)
     public List<FavoriteResponse> getMyFavorites(Long userId) {
-        return favoriteRepository.findByUserId(userId).stream()
+        return favoriteRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
                 .map(FavoriteMapper::toResponse)
                 .toList();
     }

@@ -22,9 +22,18 @@
 
         <Label styleClass="page-header" text="Seller Profile"/>
 
-        <Label fx:id="usernameLabel" styleClass="section-header"/>
-        <Label fx:id="fullNameLabel"/>
-        <Label fx:id="phoneLabel"/>
+        <HBox alignment="CENTER_LEFT" spacing="6">
+            <Label text="Username:" styleClass="detail-field-label"/>
+            <Label fx:id="usernameLabel"/>
+        </HBox>
+        <HBox alignment="CENTER_LEFT" spacing="6">
+            <Label text="Name:" styleClass="detail-field-label"/>
+            <Label fx:id="fullNameLabel"/>
+        </HBox>
+        <HBox alignment="CENTER_LEFT" spacing="6">
+            <Label text="Phone number:" styleClass="detail-field-label"/>
+            <Label fx:id="phoneLabel"/>
+        </HBox>
         <HBox alignment="CENTER_LEFT" spacing="6">
             <Label fx:id="ratingStarLabel" managed="false" styleClass="ad-card-rating-star" visible="false"/>
             <Label fx:id="ratingSummaryLabel" styleClass="seller-rating-label"/>

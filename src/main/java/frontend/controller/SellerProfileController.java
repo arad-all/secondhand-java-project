@@ -62,9 +62,9 @@ public class SellerProfileController {
             JsonNode seller = apiClient.getUserByUsername(sellerUsername);
             Long sellerId = seller.path("id").asLong();
 
-            usernameLabel.setText("Username: " + seller.path("username").asText(""));
-            fullNameLabel.setText("Name: " + seller.path("fullName").asText(""));
-            phoneLabel.setText("Phone: " + seller.path("phoneNumber").asText(""));
+            usernameLabel.setText(seller.path("username").asText(""));
+            fullNameLabel.setText(seller.path("fullName").asText(""));
+            phoneLabel.setText(seller.path("phoneNumber").asText(""));
 
             JsonNode ratingsResponse = apiClient.getSellerRatings(sellerId);
             long total = ratingsResponse.path("totalRatings").asLong(0);

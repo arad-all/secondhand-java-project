@@ -34,6 +34,10 @@
     -fx-font-size: 12px;
 }
 
+.detail-field-label {
+    -fx-font-weight: bold;
+}
+
 .error-label {
     -fx-text-fill: #dc2626;
     -fx-font-weight: bold;
