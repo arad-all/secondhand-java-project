@@ -138,7 +138,10 @@ public class SellerProfileController {
             Label buyerLabel = new Label(buyer);
             buyerLabel.getStyleClass().add("review-buyer-label");
 
-            HBox headerRow = new HBox(8, filledStars, emptyStars, buyerLabel);
+            HBox starsBox = new HBox(filledStars, emptyStars);
+            starsBox.setAlignment(Pos.CENTER_LEFT);
+
+            HBox headerRow = new HBox(8, starsBox, buyerLabel);
             headerRow.setAlignment(Pos.CENTER_LEFT);
 
             Label adTitleLabel = new Label("For \"" + adTitle + "\"");
